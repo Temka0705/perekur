@@ -1137,6 +1137,8 @@ const rollPrep = {
   },
   down(m, x, y){
     const R = m.roll; R.holding = true; R.lastY = y;
+    R.kb = x === undefined; // с клавиатуры: табак сыплется сам, проходя вдоль бумаги
+    R.kbT = 0;
     if(m.phase === 'pour') loopStart(3200, .7, .02);
     if(m.phase === 'lick'){
       sfx.lick(); m.phase = 'sealing'; R.sealT = 0;
@@ -1159,11 +1161,14 @@ const rollPrep = {
   update(m, dt){
     const R = m.roll, gm = rollPrep.geo(m);
     if(m.phase === 'pour' && R.holding){
-      const u = (E.px - gm.x) / gm.PW;
+      if(R.kb) R.kbT += dt;
+      const px = R.kb ? gm.x + gm.PW * (1 - Math.abs((R.kbT * .7) % 2 - 1)) : E.px;
+      const py = R.kb ? m.cy - gm.PH * .6 : E.py;
+      const u = (px - gm.x) / gm.PW;
       if(u >= -.05 && u <= 1.05){
         const fi = clamp(u, 0, .999) * N_BINS;
         for(let i = 0; i < N_BINS; i++){ const d = i + .5 - fi; R.bins[i] = Math.min(2.6, R.bins[i] + dt * 2.2 * Math.exp(-d * d / 1.2)); }
-        if(Math.random() < dt * 40) crumb(E.px + rand(-8, 8), E.py - 10, m.cy + rand(-gm.PH * .3, gm.PH * .3));
+        if(Math.random() < dt * 40) crumb(px + rand(-8, 8), py - 10, m.cy + rand(-gm.PH * .3, gm.PH * .3));
       }
     }
     if(m.phase === 'roll' && R.holding) R.prog = Math.min(1, R.prog + dt * .3);
@@ -1266,6 +1271,8 @@ MODES.cigarillo = makeRod('cigarillo', {
 
 /* ---- сигара ---- */
 const CIGAR_CM = 15;
+let ashRecord = load('perekur.ashRecord', 0);
+const cmText = cm => cm.toFixed(1).replace('.', ',') + ' см';
 const cutPrep = {
   start:'cut',
   init(m){ m.cutT = 0; m.cutPos = 0; },
@@ -1309,17 +1316,15 @@ MODES.cigar = makeRod('cigar', {
   burnIdle:1 / 600, burnPuff:1 / 30, cough:1.6, ash:[.3, .5], ashCols:ASH_CIGAR, light:'torch', prep:cutPrep,
   side:'166,172,188', exh:'208,200,190', density:1.6, size:1.3, alpha:1.15, sideSize:1.4, sideRate:40,
   hintLit:'Сигару не затягивают: короткие затяжки. Держи пепел подольше',
-  stats:m => [['Затяжек', m.puffs], ['Пепел', (m.ash * CIGAR_CM).toFixed(1).replace('.', ',') + ' см'], ['Рекорд', (load('perekur.ashRecord', 0)).toFixed(1).replace('.', ',') + ' см']],
+  // рекорд за сессию показываем из памяти, а в хранилище пишем один раз в конце
+  stats:m => [['Затяжек', m.puffs], ['Пепел', cmText(m.ash * CIGAR_CM)], ['Рекорд', cmText(Math.max(ashRecord, m.maxAsh * CIGAR_CM))]],
   end:m => {
-    const cm = m.maxAsh * CIGAR_CM, rec = load('perekur.ashRecord', 0);
-    if(cm > rec) save('perekur.ashRecord', cm);
+    const cm = m.maxAsh * CIGAR_CM, isNew = cm > ashRecord + .05;
+    if(isNew){ ashRecord = cm; save('perekur.ashRecord', cm); }
     showEnd('Сигара докурена', `${puffWord(m.puffs)} за ${fmtTime(m.litTime)}`,
-      `Самый длинный пепел: ${cm.toFixed(1).replace('.', ',')} см${cm > rec ? ', новый рекорд' : ''}. До кольца не докуривают, остаток оставляют в пепельнице.`, 'Ещё одну');
+      `Самый длинный пепел: ${cmText(cm)}${isNew ? ', новый рекорд' : ''}. До кольца не докуривают, остаток оставляют в пепельнице.`, 'Ещё одну');
   }
 });
-// сохранять рекорд пепла по ходу
-const _cigUpd = MODES.cigar.update;
-MODES.cigar.update = dt => { _cigUpd(dt); const m = MODES.cigar, cm = m.ash * CIGAR_CM; if(cm > load('perekur.ashRecord', 0) + .05) save('perekur.ashRecord', cm); };
 
 /* ---- трубка ---- */
 MODES.pipe = (() => {
@@ -1735,7 +1740,7 @@ MODES.heat = (() => {
     m.Lh = Math.min(W * .6, 400, avail * 1.4); m.Dh = m.Lh * .14;
     m.cx = W / 2 + m.Lh * .18; m.cy = (E.top + E.bot) / 2 + avail * .04; m.ang = -.07;
   };
-  m.reset = () => { Object.assign(m, {phase:'insert', ins:0, out:0, press:0, heatT:0, left:HEAT_PUFFS, puffs:0, P:newP(), buzz:0, led:0, done:false, endIn:-1, stain:0}); m.layout(); };
+  m.reset = () => { Object.assign(m, {phase:'insert', ins:0, out:0, press:0, heatT:0, left:HEAT_PUFFS, puffs:0, P:newP(), buzz:0, buzzIn:-1, led:0, done:false, endIn:-1, stain:0}); m.layout(); };
   const toW = (lx, ly) => { const co = Math.cos(m.ang), si = Math.sin(m.ang); return [m.cx + lx * co - ly * si, m.cy + lx * si + ly * co]; };
   const stickX = () => -m.Lh / 2 - m.Lh * .3 - (1 - m.ins) * m.Lh * .4 - m.out * m.Lh * .6;
   m.tray = () => trayAt(m.cx - m.Lh * .45, m.Lh * .5);
@@ -1753,7 +1758,7 @@ MODES.heat = (() => {
     if(m.phase === 'smoke' && r.puffed){
       if(r.amt > .3){ addPuff(m); m.left--; m.stain = Math.min(1, m.stain + 1 / HEAT_PUFFS); if(m.left <= 2 && m.left > 0) vibrate(1); }
       exhale(Math.max(.2, r.amt) * .8, {delay:.4, mouth:m.mouth, tint:'232,232,230', density:.9, alpha:.8});
-      if(m.left <= 0){ m.phase = 'remove'; setTimeout(() => vibrate(2), 600); }
+      if(m.left <= 0){ m.phase = 'remove'; m.buzzIn = .6; }
     }
     if(m.phase === 'press') m.press = 0;
   };
@@ -1761,6 +1766,7 @@ MODES.heat = (() => {
   m.update = dt => {
     const P = m.P;
     m.buzz = Math.max(0, m.buzz - dt);
+    if(m.buzzIn > 0){ m.buzzIn -= dt; if(m.buzzIn <= 0) vibrate(2); }
     if(m.phase === 'inserting'){ m.ins = Math.min(1, m.ins + dt * 3); if(m.ins >= 1) m.phase = 'press'; }
     if(m.phase === 'press' && P.holding){ m.press += dt; if(m.press > 1.2){ m.phase = 'heating'; m.heatT = 0; vibrate(1); stopP(m); } }
     if(m.phase === 'heating'){ m.heatT += dt; if(m.heatT > 7){ m.phase = 'smoke'; vibrate(2); } }

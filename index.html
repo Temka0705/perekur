@@ -1,0 +1,1944 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Перекур</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0c0e11">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Перекур">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Одна ночная сцена во весь экран: HUD и вкладки сверху, предмет по центру, предупреждение как на пачке снизу */
+:root{
+  --bg:#0c0e11;
+  --fg:#e9e5dd;
+  --dim:#8b9099;
+  --ember:#ff6a1f;
+  --line:rgba(233,229,221,.14);
+  --panel:rgba(12,14,17,.9);
+  --display:'Oswald','Arial Narrow',Impact,sans-serif;
+  --text:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--text);overflow:hidden;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+.hud{position:fixed;top:0;left:0;right:0;display:flex;flex-direction:column;gap:12px;
+  padding-top:calc(env(safe-area-inset-top,0px) + 14px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  pointer-events:none}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.logo{font-family:var(--display);font-weight:600;font-size:22px;letter-spacing:.22em;line-height:1}
+.stats{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;min-height:16px}
+.stats b{color:var(--fg);font-weight:600}
+.chip{pointer-events:auto;font:500 13px var(--text);color:var(--fg);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:rgba(233,229,221,.35)}
+.chips{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:62%}
+.diary-card{width:min(100%,420px)}
+.dtable{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.dtable th{font:500 12px var(--text);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;text-align:right;padding:0 0 8px}
+.dtable th:first-child,.dtable td:first-child{text-align:left}
+.dtable td{padding:7px 0;border-top:1px solid var(--line);text-align:right;color:var(--fg)}
+.dtable td.zero{color:var(--dim)}
+.dtable tr.sum td{font-weight:600;border-top:1px solid rgba(233,229,221,.35)}
+.tabs{pointer-events:auto;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;margin-inline:-4px;padding:2px 4px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;font:500 13px var(--text);color:var(--dim);background:rgba(12,14,17,.6);border:1px solid var(--line);
+  border-radius:999px;padding:7px 13px;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:#14100c;background:var(--fg);border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+.hint{position:fixed;left:0;right:0;text-align:center;pointer-events:none;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 100px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  font-size:14px;line-height:1.4;color:var(--dim);letter-spacing:.02em;text-wrap:balance;min-height:2.8em;display:flex;align-items:flex-end;justify-content:center}
+.warn{position:fixed;left:0;right:0;display:flex;justify-content:center;pointer-events:none;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 16px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.warn div{background:#fff;color:#000;border:4px solid #000;outline:2px solid #fff;
+  font-family:var(--display);font-weight:600;text-transform:uppercase;text-align:center;
+  font-size:clamp(15px,4vw,23px);letter-spacing:.04em;line-height:1.1;padding:9px 16px;width:min(100%,520px)}
+.end{position:fixed;inset:0;display:grid;place-items:center;background:rgba(6,7,9,.55);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  animation:fade .5s ease both}
+.card{width:min(100%,380px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 24px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;flex-direction:column;gap:14px}
+.card h2{margin:0;font-family:var(--display);font-weight:600;font-size:32px;letter-spacing:.06em;text-transform:uppercase;text-wrap:balance}
+.card p{margin:0;line-height:1.5;color:var(--dim);font-size:14px}
+.card .big{color:var(--fg);font-size:15px;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.btn{font:600 15px var(--text);border-radius:10px;padding:12px 16px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--fg);flex:1 1 auto}
+.btn.primary{background:var(--ember);border-color:var(--ember);color:#1a0b02}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.end{animation:none}}
+</style>
+
+<canvas id="scene" aria-label="Симулятор курения. Зажмите, чтобы затянуться, коротко нажмите для действия."></canvas>
+
+<header class="hud" id="hud">
+  <div class="top">
+    <div>
+      <div class="logo">ПЕРЕКУР</div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="chips">
+      <button id="fire" class="chip" type="button" hidden>Огонь: зажигалка</button>
+      <button id="diaryBtn" class="chip" type="button">Дневник</button>
+      <button id="mute" class="chip" type="button">Звук: вкл</button>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Что курим"></nav>
+</header>
+
+<div class="hint" id="hint"></div>
+<footer class="warn"><div id="warn">Курение убивает</div></footer>
+
+<div class="end" id="end" hidden>
+  <div class="card" id="endCard"></div>
+</div>
+
+<div class="end" id="diary" hidden>
+  <div class="card diary-card" id="diaryCard"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const cv = $('scene');
+const g = cv.getContext('2d');
+
+/* ================= утилиты ================= */
+function load(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+function plural(n, a, b, c){ const m10 = n % 10, m100 = n % 100; if(m10 === 1 && m100 !== 11) return a; if(m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return b; return c; }
+function rr(x, y, w, h, r){ r = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function vgrad(y0, y1, cols){ const gr = g.createLinearGradient(0, y0, 0, y1); const st = [0, .25, .6, 1]; cols.forEach((c, i) => gr.addColorStop(st[i], c)); return gr; }
+function hgrad(x0, x1, cols){ const gr = g.createLinearGradient(x0, 0, x1, 0); const st = [0, .3, .6, 1]; cols.forEach((c, i) => gr.addColorStop(st[i], c)); return gr; }
+
+const MIN_PER_CIG = 20; // оценка UCL, 2024
+const W_TOB = ['Курение убивает','Курение вызывает рак лёгких','Курение вызывает инсульт','Курение вредит окружающим','Курение старит кожу','Курение вызывает импотенцию','Курение вызывает инфаркт'];
+const W_HOOK = ['Курение кальяна вредит здоровью','Кальян вызывает рак лёгких','Кальян вредит окружающим'];
+const W_NIC = ['Содержит никотин. Вызывает зависимость','Никотин вредит сердцу и сосудам','Никотин вызывает зависимость'];
+
+/* ================= экран ================= */
+let W = 0, H = 0, DPR = 1;
+const E = {t:0, top:120, bot:500, parts:[], chunks:[], texts:[], rings:[], exh:[], shake:0, px:0, py:0, hold:null, tricks:0};
+function measure(){
+  E.top = $('hud').getBoundingClientRect().bottom + 6;
+  E.bot = $('hint').getBoundingClientRect().top - 10;
+  if(E.bot - E.top < 200){ E.bot = Math.min(H - 60, E.top + 200); }
+}
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  measure();
+  if(M) M.layout();
+}
+
+/* ================= спрайты ================= */
+const sprCache = {};
+function spr(rgb){
+  if(sprCache[rgb]) return sprCache[rgb];
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, `rgba(${rgb},1)`); gr.addColorStop(.45, `rgba(${rgb},.45)`); gr.addColorStop(1, `rgba(${rgb},0)`);
+  x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+  return sprCache[rgb] = c;
+}
+const T_SIDE = '176,190,214', T_EXH = '214,212,206', T_DUST = '150,146,140';
+
+/* ================= звук ================= */
+let AC = null, NB = null, muted = load('perekur.muted', false), loopN = null;
+function audio(){
+  if(!AC){
+    try{
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      const n = AC.sampleRate * 2; NB = AC.createBuffer(1, n, AC.sampleRate);
+      const d = NB.getChannelData(0); for(let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    }catch(e){ AC = null; }
+  }
+  if(AC && AC.state === 'suspended') AC.resume().catch(() => {});
+}
+function noise(o){
+  if(!AC || muted) return;
+  const at = AC.currentTime + (o.at || 0), dur = o.dur || .1;
+  const s = AC.createBufferSource(); s.buffer = NB; s.loop = true;
+  const f = AC.createBiquadFilter(); f.type = o.type || 'bandpass';
+  f.frequency.setValueAtTime(o.f || 1000, at);
+  if(o.f2) f.frequency.exponentialRampToValueAtTime(o.f2, at + dur);
+  f.Q.value = o.q || 1;
+  const gn = AC.createGain(); gn.gain.setValueAtTime(0.0001, at);
+  gn.gain.linearRampToValueAtTime(o.gain || .1, at + (o.attack || .004));
+  gn.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  s.connect(f).connect(gn).connect(AC.destination);
+  s.start(at, Math.random() * 1.5); s.stop(at + dur + .05);
+}
+function tone(f, f2, dur, gain, type, at){
+  if(!AC || muted) return;
+  const t0 = AC.currentTime + (at || 0);
+  const o = AC.createOscillator(); o.type = type || 'sine';
+  o.frequency.setValueAtTime(f, t0); if(f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+  const gn = AC.createGain(); gn.gain.setValueAtTime(0.0001, t0);
+  gn.gain.linearRampToValueAtTime(gain, t0 + .005); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(gn).connect(AC.destination); o.start(t0); o.stop(t0 + dur + .05);
+}
+function loopStart(f, q, gain, type){
+  if(!AC || muted || loopN) return;
+  const s = AC.createBufferSource(); s.buffer = NB; s.loop = true;
+  const fl = AC.createBiquadFilter(); fl.type = type || 'bandpass'; fl.frequency.value = f; fl.Q.value = q;
+  const gn = AC.createGain(); gn.gain.value = 0.0001;
+  gn.gain.linearRampToValueAtTime(gain, AC.currentTime + .3);
+  s.connect(fl).connect(gn).connect(AC.destination); s.start();
+  loopN = {s, gn};
+}
+function loopStop(){
+  if(!loopN) return;
+  const {s, gn} = loopN, now = AC.currentTime;
+  gn.gain.cancelScheduledValues(now); gn.gain.setValueAtTime(gn.gain.value, now);
+  gn.gain.linearRampToValueAtTime(0.0001, now + .12); s.stop(now + .15);
+  loopN = null;
+}
+const sfx = {
+  flint(){ noise({type:'highpass', f:3200, dur:.035, gain:.35}); noise({type:'bandpass', f:700, q:.7, dur:.45, gain:.06, attack:.05, at:.04}); },
+  strike(){ noise({type:'bandpass', f:2600, f2:900, q:.8, dur:.3, gain:.3, attack:.01}); noise({type:'lowpass', f:600, dur:.6, gain:.06, attack:.1, at:.15}); },
+  crackle(){ noise({type:'bandpass', f:rand(2500, 6500), q:5, dur:rand(.008, .02), gain:rand(.06, .22)}); },
+  exhale(a){ noise({type:'lowpass', f:1500, f2:280, q:.6, dur:.9 + a * .45, gain:.07 + a * .02, attack:.18}); },
+  cough(){ for(let i = 0; i < 3; i++) noise({type:'lowpass', f:1000, q:1.2, dur:.16, gain:.4, attack:.01, at:i * .27}); },
+  flick(){ noise({type:'bandpass', f:1800, q:2, dur:.04, gain:.12}); },
+  pop(){ tone(2200, 700, .05, .25, 'triangle'); noise({type:'highpass', f:3000, dur:.03, gain:.2}); },
+  cut(){ noise({type:'highpass', f:3500, dur:.07, gain:.35}); tone(1400, 500, .06, .15, 'triangle'); },
+  tamp(){ noise({type:'lowpass', f:420, dur:.09, gain:.35}); tone(160, 90, .08, .2); },
+  knock(){ for(let i = 0; i < 2; i++){ tone(150, 90, .1, .4, 'sine', i * .18); noise({type:'lowpass', f:500, dur:.08, gain:.25, at:i * .18}); } },
+  bubble(){ const f = rand(160, 420); tone(f, f * 1.7, rand(.04, .08), rand(.05, .11)); },
+  buzz(n){ for(let i = 0; i < (n || 1); i++) tone(130, 120, .2, .07, 'square', i * .3); },
+  place(){ noise({type:'lowpass', f:900, dur:.1, gain:.25}); noise({type:'highpass', f:5000, dur:.6, gain:.05, attack:.05, at:.05}); },
+  lick(){ noise({type:'bandpass', f:1300, q:1.5, dur:.18, gain:.1, attack:.04}); },
+  click(){ tone(1800, 1200, .03, .12, 'square'); },
+  slide(){ noise({type:'bandpass', f:1600, f2:2600, q:1, dur:.25, gain:.08, attack:.05}); },
+  clink(){ tone(3200, 2900, .25, .12, 'triangle'); tone(4700, 4500, .18, .06, 'sine'); noise({type:'highpass', f:5000, dur:.02, gain:.2}); },
+  clack(){ tone(900, 500, .05, .2, 'square'); noise({type:'bandpass', f:2500, dur:.04, gain:.25}); },
+  wheel(){ noise({type:'bandpass', f:2800, f2:1800, q:2, dur:.12, gain:.3}); noise({type:'lowpass', f:500, dur:.5, gain:.08, attack:.05, at:.08}); }
+};
+
+/* ================= частицы и эффекты ================= */
+function smoke(x, y, o){
+  E.parts.push(Object.assign({k:'smoke', x, y, vx:0, vy:-20, r:3, gr:8, a:.2, life:0, max:4, buoy:-20, drag:.4, turb:30, seed:Math.random() * 100, tint:T_SIDE}, o));
+}
+function sideSmoke(x, y, tint, sz){
+  sz = sz || 1;
+  smoke(x + rand(-1.5, 1.5) * sz, y, {vx:rand(-4, 4), vy:rand(-26, -14), r:rand(1.6, 2.8) * sz, gr:rand(5, 11) * sz, a:rand(.14, .24), max:rand(4, 6.5), buoy:-22, drag:.35, turb:rand(22, 40), tint:tint || T_SIDE});
+}
+function spark(x, y){
+  E.parts.push({k:'spark', x, y, vx:rand(-30, 50), vy:rand(-70, -20), r:rand(.8, 1.6), gr:0, a:1, life:0, max:rand(.35, .8), buoy:220, drag:.5, turb:0, seed:0});
+}
+function dust(x, y, n, tint){
+  for(let i = 0; i < n; i++) E.parts.push({k:'smoke', x:x + rand(-6, 6), y:y + rand(-4, 4), vx:rand(-20, 20), vy:rand(-10, 30),
+    r:rand(1.5, 4), gr:rand(2, 6), a:rand(.25, .5), life:0, max:rand(.8, 1.6), buoy:60, drag:1.2, turb:10, seed:Math.random() * 100, tint:tint || T_DUST});
+}
+function crumb(x, y, floorY, col){
+  E.parts.push({k:'crumb', x, y, vx:rand(-12, 12), vy:rand(10, 50), r:rand(1, 2.4), gr:0, a:1, life:0, max:2, buoy:700, drag:0, turb:0, seed:0, floor:floorY, col:col || '#6b4524'});
+}
+function floatText(str, x, y){ E.texts.push({str, x, y, life:0, max:1.7}); }
+// После затяжки дым держится во рту: в это окно жест выбирает трюк, иначе обычный выдох
+function exhale(amt, o){
+  if(E.hold) releaseHold();
+  E.hold = {amt, left:amt, o, idle:0, wait:(o.delay ?? .4) + .45, rings:0, down:null, wisp:0};
+}
+function releaseHold(){
+  const h = E.hold; E.hold = null;
+  if(h && h.left > .12) exhaleNow(h.left, h.o);
+}
+function exhaleNow(amt, o){
+  const a = Math.min(3, amt);
+  E.exh.push({left:o.dur || (.7 + a * .35), rate:(22 + a * 16) * (o.density || 1), power:Math.min(1, .35 + a / 2.5), o, acc:0});
+  if(!o.silent) sfx.exhale(a);
+}
+function ring(x, y, dir, tint){ E.rings.push({x, y, vx:Math.cos(dir) * 120, vy:Math.sin(dir) * 120, dir, r:7, life:0, max:3.4, tint, seed:Math.random() * 10}); }
+function trick(name){
+  E.tricks++;
+  const [x, y] = E.hold.o.mouth();
+  floatText(name, x + 10, y - 40);
+}
+function holdGesture(dx, dy, dt){
+  const h = E.hold, o = h.o, [mx, my] = o.mouth(), dist = Math.hypot(dx, dy);
+  if(dist < 22 && dt < .35){
+    ring(mx, my, (o.dir ?? -.38) + .1 + rand(-.08, .08), o.tint);
+    noise({type:'lowpass', f:500, dur:.12, gain:.12});
+    if(!h.rings) trick('Кольцо'); else E.tricks++;
+    h.rings++; h.left -= .3; h.idle = 0;
+    if(h.left <= .05) E.hold = null;
+    return;
+  }
+  if(dist < 22){ releaseHold(); return; }
+  const a = Math.max(.6, h.left);
+  if(Math.abs(dy) > Math.abs(dx)){
+    if(dy > 0){
+      trick('Водопад');
+      exhaleNow(a, Object.assign({}, o, {dir:Math.PI / 2 - .15, speed:.55, buoy:55, drag:1.2, turb:30, size:.8, alpha:(o.alpha || 1) * 1.2, dur:1.6, density:(o.density || 1), silent:true}));
+      noise({type:'lowpass', f:700, f2:250, q:.6, dur:1.4, gain:.06, attack:.2});
+    } else {
+      trick('Призрак');
+      for(let i = 0; i < 34; i++){
+        const ang = (o.dir ?? -.38) + rand(-.25, .25), sp = rand(80, 130);
+        smoke(mx + rand(-3, 3), my + rand(-3, 3), {vx:Math.cos(ang) * sp, vy:Math.sin(ang) * sp, r:rand(5, 9), gr:6, a:rand(.1, .16) * (o.alpha || 1),
+          max:2.4, buoy:0, drag:2.6, turb:8, tint:o.tint || T_EXH, ghost:{back:.75, mouth:o.mouth}});
+      }
+      noise({type:'lowpass', f:900, dur:.3, gain:.08, attack:.05}); noise({type:'bandpass', f:1300, dur:.35, gain:.05, attack:.1, at:.75});
+    }
+  } else {
+    trick('Дракон');
+    for(const d of [Math.PI / 2 + .55, Math.PI / 2 - .55]){
+      exhaleNow(a * .7, Object.assign({}, o, {dir:d, speed:1.3, size:.85, alpha:(o.alpha || 1) * 1.6, turb:25, dur:1, density:(o.density || 1) * 1.1, silent:true,
+        mouth:() => { const [x, y] = o.mouth(); return [x + (d > Math.PI / 2 ? -5 : 5), y - 12]; }}));
+    }
+    noise({type:'lowpass', f:1800, f2:400, q:.7, dur:.9, gain:.1, attack:.05});
+  }
+  E.hold = null;
+}
+function coughFx(x, y, word, o){
+  E.shake = .5; sfx.cough();
+  exhaleNow(1, Object.assign({dur:1.1, density:2.4, messy:true, silent:true}, o));
+  floatText(word || 'кхе-кхе', x + 20, y - 30);
+}
+
+function updateFx(dt){
+  if(E.hold){
+    const h = E.hold;
+    if(!h.down){ h.idle += dt; if(h.idle > (h.rings ? .7 : h.wait)) releaseHold(); }
+    if(E.hold && Math.random() < dt * 6){ const [mx, my] = h.o.mouth(); smoke(mx, my, {vx:rand(5, 15), vy:rand(-12, -4), r:2, gr:5, a:.12, max:1.6, buoy:-12, drag:.6, turb:20, tint:h.o.tint || T_EXH}); }
+  }
+  for(let i = E.exh.length - 1; i >= 0; i--){
+    const e = E.exh[i], o = e.o; e.left -= dt; e.acc += dt * e.rate;
+    while(e.acc > 1){
+      e.acc--;
+      const [mx, my] = o.mouth();
+      const ang = (o.dir ?? -.38) + rand(-.28, .28) + (o.messy ? rand(-.6, .6) : 0);
+      const sp = rand(140, 260) * (.55 + e.power * .45) * (o.speed || 1), sz = o.size || 1;
+      smoke(mx + rand(-4, 4), my + rand(-4, 4), {vx:Math.cos(ang) * sp, vy:Math.sin(ang) * sp, r:rand(6, 12) * sz, gr:rand(30, 56) * sz,
+        a:rand(.06, .12) * (o.alpha || 1), max:rand(3, 4.8), buoy:o.buoy ?? -10, drag:o.drag ?? 1.1, turb:o.turb ?? (o.messy ? 120 : 55), tint:o.tint || T_EXH});
+    }
+    if(e.left <= 0) E.exh.splice(i, 1);
+  }
+  const t = E.t;
+  for(let i = E.parts.length - 1; i >= 0; i--){
+    const p = E.parts[i]; p.life += dt;
+    if(p.life > p.max || p.y < -150){ E.parts.splice(i, 1); continue; }
+    if(p.k === 'crumb'){
+      p.vy += p.buoy * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if(p.floor !== undefined && p.y > p.floor){ E.parts.splice(i, 1); }
+      continue;
+    }
+    if(p.ghost && p.life > p.ghost.back){
+      const [mx, my] = p.ghost.mouth(), dx = mx - p.x, dy = my - p.y;
+      p.vx = dx * 5; p.vy = dy * 5; p.x += p.vx * dt; p.y += p.vy * dt; p.r = Math.max(1, p.r - 14 * dt);
+      if(dx * dx + dy * dy < 36) E.parts.splice(i, 1);
+      continue;
+    }
+    if(p.turb) p.vx += Math.sin(p.y * .012 + t * .8 + p.seed) * p.turb * dt + Math.cos(p.x * .009 - t * .5 + p.seed) * p.turb * .4 * dt;
+    p.vy += p.buoy * dt;
+    const dr = Math.max(0, 1 - p.drag * dt); p.vx *= dr; if(p.k !== 'spark') p.vy *= dr;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.gr * dt;
+  }
+  if(E.parts.length > 1100) E.parts.splice(0, E.parts.length - 1100);
+  for(let i = E.chunks.length - 1; i >= 0; i--){
+    const c = E.chunks[i];
+    c.vy += 900 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.ang += c.va * dt;
+    if(c.land){
+      const T = trayGeo();
+      if(T && c.vy > 0 && c.y > T.y - T.ry * .3 && Math.abs(c.x - T.x) < T.w * .5){ landInTray(c, T); E.chunks.splice(i, 1); continue; }
+    }
+    if(!c.broke && c.vy > 500){ c.broke = true; if(c.dust) dust(c.x, c.y, 6, c.dust); }
+    if(c.y > H + 200) E.chunks.splice(i, 1);
+  }
+  for(let i = E.rings.length - 1; i >= 0; i--){
+    const r = E.rings[i]; r.life += dt;
+    if(r.life > r.max){ E.rings.splice(i, 1); continue; }
+    const dr = Math.max(0, 1 - .55 * dt); r.vx *= dr; r.vy = r.vy * dr - 6 * dt;
+    r.x += r.vx * dt; r.y += r.vy * dt; r.r += (16 + 10 * r.life) * dt;
+  }
+  for(let i = E.texts.length - 1; i >= 0; i--){ const x = E.texts[i]; x.life += dt; x.y -= 30 * dt; if(x.life > x.max) E.texts.splice(i, 1); }
+  E.shake = Math.max(0, E.shake - dt);
+}
+function drawFx(){
+  for(const c of E.chunks){ g.save(); g.translate(c.x, c.y); g.rotate(c.ang); c.draw(); g.restore(); }
+  for(const p of E.parts){
+    const k = p.life / p.max;
+    if(p.k === 'spark'){
+      g.globalCompositeOperation = 'lighter';
+      g.fillStyle = `rgba(255,${150 + 80 * (1 - k) | 0},60,${1 - k})`;
+      g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
+      g.globalCompositeOperation = 'source-over';
+      continue;
+    }
+    if(p.k === 'crumb'){ g.fillStyle = p.col; g.fillRect(p.x, p.y, p.r * 1.8, p.r * .7); continue; }
+    const f = k < .08 ? k / .08 : Math.pow(1 - k, 1.4);
+    g.globalAlpha = Math.max(0, p.a * f);
+    g.drawImage(spr(p.tint), p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+  }
+  for(const r of E.rings){
+    const k = r.life / r.max, f = k < .06 ? k / .06 : Math.pow(1 - k, 1.2);
+    const ux = -Math.sin(r.dir), uy = Math.cos(r.dir), vx = Math.cos(r.dir), vy = Math.sin(r.dir);
+    const s = spr(r.tint || T_EXH), n = 22, sz = Math.max(4, r.r * .42);
+    g.globalAlpha = .26 * f;
+    for(let i = 0; i < n; i++){
+      const a = i / n * Math.PI * 2 + Math.sin(r.life * 2 + r.seed) * .2;
+      const px = r.x + ux * Math.cos(a) * r.r + vx * Math.sin(a) * r.r * .32;
+      const py = r.y + uy * Math.cos(a) * r.r + vy * Math.sin(a) * r.r * .32;
+      g.drawImage(s, px - sz, py - sz, sz * 2, sz * 2);
+    }
+  }
+  g.globalAlpha = 1;
+  for(const x of E.texts){
+    g.globalAlpha = 1 - x.life / x.max;
+    g.fillStyle = '#e9e5dd'; g.font = `500 ${Math.max(17, Math.min(26, W * .045))}px Oswald, sans-serif`;
+    g.fillText(x.str, x.x, x.y);
+  }
+  g.globalAlpha = 1;
+}
+function drawBg(x, y, glow, rgb){
+  g.fillStyle = '#0c0e11'; g.fillRect(0, 0, W, H);
+  if(glow > .01){
+    const rg = g.createRadialGradient(x, y, 0, x, y, Math.max(W, H) * .55);
+    rg.addColorStop(0, `rgba(${rgb || '255,110,40'},${.13 * glow})`); rg.addColorStop(1, `rgba(${rgb || '255,110,40'},0)`);
+    g.fillStyle = rg; g.fillRect(0, 0, W, H);
+  }
+  const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .3, W / 2, H / 2, Math.max(W, H) * .8);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
+  g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  drawTray();
+}
+
+/* ================= пепельница ================= */
+const TRAY = load('perekur.tray', null) || {ash:0, butts:[]};
+function saveTray(){ save('perekur.tray', TRAY); }
+function trayGeo(){ return M && M.tray ? M.tray() : null; }
+function trayAt(cx, w){ w = Math.max(110, Math.min(w, 250)); const h = w * .2, ry = w * .11; return {x:cx, y:E.bot - h - 4, w, h, ry}; }
+function trayFull(){ return TRAY.butts.length >= 12 || TRAY.ash >= .95; }
+function landInTray(c, T){
+  if(c.ash) TRAY.ash = Math.min(1, TRAY.ash + c.ash);
+  if(c.butt){
+    TRAY.butts.push({t:c.butt, u:rand(-.55, .55), v:rand(-.35, .35), a:rand(0, Math.PI * 2)});
+    if(TRAY.butts.length > 14) TRAY.butts.shift();
+    for(let i = 0; i < 8; i++) sideSmoke(c.x + rand(-6, 6), T.y - 4, T_SIDE, 1.3);
+    noise({type:'highpass', f:4000, dur:.35, gain:.05, attack:.02});
+  }
+  dust(c.x, T.y, c.butt ? 4 : 7, T_DUST);
+  saveTray();
+}
+function emptyTray(){
+  const T = trayGeo(); if(!T) return;
+  if(!TRAY.ash && !TRAY.butts.length) return;
+  dust(T.x, T.y, 20, '120,116,110');
+  TRAY.ash = 0; TRAY.butts = []; saveTray();
+  sfx.knock(); floatText('Вытряхнул', T.x - 40, T.y - 30);
+}
+function inTray(x, y){ const T = trayGeo(); return T && Math.abs(x - T.x) < T.w * .55 && y > T.y - T.ry * 1.6 && y < T.y + T.h + 6; }
+// окурки: длина len, толщина d, ось по x
+function drawButt(t, len, d){
+  const r = d / 2;
+  if(t === 'cigar'){
+    g.fillStyle = vgrad(-r, r, ['#4a2e18', '#8a5c32', '#6a4322', '#2f1c0d']); g.fillRect(-len / 2, -r, len, d);
+    g.fillStyle = vgrad(-r, r, ['#8a6512', '#f2d07a', '#c99a30', '#6b4a0c']); g.fillRect(-len * .2, -r, len * .22, d);
+    g.fillStyle = '#2a2420'; g.fillRect(len / 2 - 3, -r, 3, d);
+    return;
+  }
+  if(t === 'heat'){
+    g.fillStyle = vgrad(-r, r, ['#d8d2c6', '#fbf8f2', '#ebe5d9', '#a9a295']); g.fillRect(-len / 2, -r, len, d);
+    g.fillStyle = 'rgba(120,80,40,.55)'; g.fillRect(len * .15, -r, len * .35, d);
+    return;
+  }
+  const tipCol = t === 'roll' ? ['#bba67a', '#eadcb9', '#d6c49a', '#9a875e'] : t === 'cigarillo' ? ['#5a3a20', '#a2714a', '#7a4e2b', '#3e2613'] : ['#9b5f29', '#e3a660', '#c27f3d', '#6f4119'];
+  const tipK = t === 'cigarillo' ? 1 : .62;
+  g.fillStyle = vgrad(-r, r, tipCol); g.fillRect(-len / 2, -r, len * tipK, d);
+  if(tipK < 1){
+    g.fillStyle = vgrad(-r, r, ['#d8d2c6', '#fbf8f2', '#ebe5d9', '#a9a295']);
+    g.beginPath(); g.moveTo(-len / 2 + len * tipK, -r); g.lineTo(len / 2, -r * .6); g.lineTo(len / 2 - 2, r * .9); g.lineTo(-len / 2 + len * tipK, r); g.closePath(); g.fill();
+  }
+  g.fillStyle = '#2a2420'; g.fillRect(len / 2 - 3, -r * .7, 3, d * .8);
+}
+const BUTT_SIZE = {cigar:[.26, .07], cigarillo:[.2, .032], heat:[.2, .04]};
+function drawTray(){
+  const T = trayGeo(); if(!T) return;
+  const {x, y, w, h, ry} = T;
+  // тень и стекло
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(x, y + h + 2, w * .5, ry * .6, 0, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.moveTo(x - w / 2, y); g.lineTo(x - w * .42, y + h); g.ellipse(x, y + h, w * .42, ry * .6, 0, Math.PI, 0, true); g.lineTo(x + w / 2, y); g.closePath();
+  g.fillStyle = 'rgba(120,140,160,.16)'; g.fill();
+  g.strokeStyle = 'rgba(200,220,240,.22)'; g.lineWidth = 1; g.stroke();
+  // жерло
+  g.fillStyle = 'rgba(8,10,12,.7)'; g.beginPath(); g.ellipse(x, y, w * .43, ry * .8, 0, 0, Math.PI * 2); g.fill();
+  g.save(); g.beginPath(); g.ellipse(x, y, w * .43, ry * .8, 0, 0, Math.PI * 2); g.clip();
+  if(TRAY.ash > .01){
+    const ah = ry * (.3 + TRAY.ash * 1.1);
+    const ag = g.createRadialGradient(x, y + ry * .2, 0, x, y + ry * .2, w * .4);
+    ag.addColorStop(0, '#9d988f'); ag.addColorStop(.6, '#6f6b65'); ag.addColorStop(1, 'rgba(70,67,63,.6)');
+    g.fillStyle = ag; g.beginPath(); g.ellipse(x, y + ry * .6, w * (.18 + TRAY.ash * .22), ah, 0, 0, Math.PI * 2); g.fill();
+  }
+  for(const b of TRAY.butts){
+    const [lk, dk] = BUTT_SIZE[b.t] || [.2, .045];
+    g.save(); g.translate(x + b.u * w * .36, y + b.v * ry * .9); g.rotate(b.a); g.scale(1, .55 + .45 * Math.abs(Math.cos(b.a)));
+    drawButt(b.t, w * lk, w * dk); g.restore();
+  }
+  g.restore();
+  // ободок с выемками
+  g.strokeStyle = 'rgba(210,228,245,.4)'; g.lineWidth = 2;
+  g.beginPath(); g.ellipse(x, y, w / 2, ry, 0, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = 'rgba(8,10,12,.9)';
+  for(const s of [-1, 1]){ g.beginPath(); g.ellipse(x + s * w * .47, y, w * .035, ry * .3, 0, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.ellipse(x - w * .25, y + h * .55, w * .05, h * .25, -.2, 0, Math.PI * 2); g.fill();
+  if(trayFull()){ g.fillStyle = 'rgba(233,229,221,.55)'; g.font = '500 12px Inter, sans-serif'; g.textAlign = 'center'; g.fillText('полная, нажми, чтобы вытряхнуть', x, y - ry - 8); g.textAlign = 'start'; }
+}
+function glowAt(x, y, r, e, rgb){
+  if(e < .02) return;
+  g.globalCompositeOperation = 'lighter';
+  const gl = g.createRadialGradient(x, y, 0, x, y, r);
+  gl.addColorStop(0, `rgba(${rgb || '255,140,60'},${.55 * e})`); gl.addColorStop(.4, `rgba(${rgb || '255,80,20'},${.22 * e})`); gl.addColorStop(1, 'rgba(255,60,10,0)');
+  g.fillStyle = gl; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  g.globalCompositeOperation = 'source-over';
+}
+
+/* ================= затяжка (общая) ================= */
+function newP(){ return {holding:false, pressT:0, puffing:false, inhaled:0, v:0}; }
+function puffTick(m, dt, can, snd){
+  const P = m.P;
+  if(P.holding && can && E.t - P.pressT > .16){
+    if(!P.puffing){ P.puffing = true; P.inhaled = 0; if(snd) loopStart(...snd); else loopStart(1300, .8, .035); }
+    P.inhaled += dt;
+  }
+  P.v += ((P.puffing ? 1 : 0) - P.v) * Math.min(1, dt * (P.puffing ? 3 : 2.2));
+}
+function pressP(m){ m.P.holding = true; m.P.pressT = E.t; }
+function releaseP(m){
+  const P = m.P, held = E.t - P.pressT, was = P.puffing, amt = P.inhaled;
+  P.holding = false; P.puffing = false; loopStop();
+  return {held, puffed:was, amt, tap:!was && held < .22};
+}
+function stopP(m){ m.P.holding = false; m.P.puffing = false; loopStop(); }
+
+/* ================= инструменты ================= */
+/* Огонь для сигареты и самокрутки: у каждого своя форма и поведение */
+const LIGHTERS = [
+  {id:'piezo', n:'зажигалка'},
+  {id:'petrol', n:'бензиновая'},
+  {id:'cheap', n:'дешёвая'},
+  {id:'match', n:'спички'},
+  {id:'candle', n:'свеча'}
+];
+const LTIME = {piezo:.9, petrol:.6, cheap:.9, match:1.4, candle:1.8, torch:2.2};
+let lighterId = load('perekur.lighter', 'piezo');
+if(!LIGHTERS.some(l => l.id === lighterId)) lighterId = 'piezo';
+const CHEAP_COLS = ['rgba(40,170,120,.75)', 'rgba(220,60,90,.75)', 'rgba(60,120,230,.75)', 'rgba(240,180,40,.75)'];
+// обычная пьезо: красный пластик, металлическая крышка
+function drawPiezo(fx, fy, D, vis, fire){
+  fy += (1 - vis) * D * 6;
+  const bw = D * 1.5, bh = D * 4.2;
+  g.fillStyle = '#7d1d1d'; rr(fx - bw / 2, fy + D * .55, bw, bh, D * .25); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(fx - bw / 2 + 3, fy + D * .7, 3, bh - D * .4);
+  g.fillStyle = '#9aa0a8'; rr(fx - bw / 2 + 1, fy + D * .1, bw - 2, D * .55, 3); g.fill();
+  g.fillStyle = '#5c6168'; g.beginPath(); g.arc(fx + bw * .25, fy + D * .3, D * .22, 0, Math.PI * 2); g.fill();
+  flame(fx, fy, D * (1.9 + Math.sin(E.t * 31) * .12 + Math.sin(E.t * 17) * .1) * fire, D * .42);
+}
+// дешёвая: прозрачный цветной корпус с видимым газом, кремень
+function drawCheap(fx, fy, D, vis, fire, col){
+  fy += (1 - vis) * D * 6;
+  const bw = D * 1.25, bh = D * 4;
+  g.fillStyle = col; rr(fx - bw / 2, fy + D * .55, bw, bh, D * .4); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.18)'; rr(fx - bw / 2 + 3, fy + D * .55 + bh * .35, bw - 6, bh * .6, D * .3); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(fx - bw / 2 + 3, fy + D * .75, 2, bh - D * .5);
+  g.fillStyle = '#7d838c'; rr(fx - bw / 2 + 2, fy + D * .05, bw - 4, D * .55, 2); g.fill();
+  g.fillStyle = '#3c4047'; g.beginPath(); g.arc(fx + bw * .2, fy + D * .2, D * .2, 0, Math.PI * 2); g.fill();
+  flame(fx, fy, D * (1.45 + Math.sin(E.t * 37) * .15) * fire, D * .32);
+}
+// бензиновая: хромированный корпус, откидная крышка, ветрозащита с отверстиями
+function drawPetrol(fx, fy, D, vis, fire, lid){
+  fy += (1 - vis) * D * 6;
+  const bw = D * 1.7, bh = D * 2.6, top = fy + D * .9;
+  g.fillStyle = hgrad(fx - bw / 2, fx + bw / 2, ['#6b7078', '#e6e9ee', '#a9afb8', '#575c63']); rr(fx - bw / 2, top, bw, bh, D * .2); g.fill();
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(fx - bw / 2, top, bw, 2);
+  // ветрозащита
+  g.fillStyle = hgrad(fx - bw * .3, fx + bw * .3, ['#5c6168', '#cfd3d9', '#9aa0a8', '#4a4e55']); g.fillRect(fx - bw * .3, fy, bw * .6, D * .9);
+  g.fillStyle = '#2a2d31'; for(let i = 0; i < 3; i++) for(let j = 0; j < 2; j++){ g.beginPath(); g.arc(fx - bw * .18 + i * bw * .18, fy + D * .25 + j * D * .35, D * .07, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = '#3c4047'; g.beginPath(); g.arc(fx + bw * .38, fy + D * .55, D * .22, 0, Math.PI * 2); g.fill();
+  // крышка на петле справа
+  g.save(); g.translate(fx + bw / 2, top); g.rotate(lid * 1.9);
+  g.fillStyle = hgrad(-bw, 0, ['#6b7078', '#e6e9ee', '#a9afb8', '#575c63']); rr(-bw, -D * 1.05, bw, D * 1.05, D * .2); g.fill();
+  g.restore();
+  if(lid > .9) flame(fx, fy + D * .1, D * (2.4 + Math.sin(E.t * 9) * .25 + Math.sin(E.t * 23) * .1) * fire, D * .6);
+}
+// свеча: толстая восковая, тихое высокое пламя
+function drawCandle(fx, fy, D, vis, fire){
+  fy += (1 - vis) * D * 7;
+  const bw = D * 1.6, bh = D * 5;
+  g.fillStyle = hgrad(fx - bw / 2, fx + bw / 2, ['#b9ad95', '#f3ead6', '#ddd1b8', '#9e927b']); g.fillRect(fx - bw / 2, fy + D * .5, bw, bh);
+  g.fillStyle = '#efe4cd'; g.beginPath(); g.ellipse(fx, fy + D * .5, bw / 2, D * .2, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#f3ead6'; rr(fx + bw * .2, fy + D * .5, D * .22, D * 1.4, D * .1); g.fill();
+  g.strokeStyle = '#222'; g.lineWidth = 2; g.beginPath(); g.moveTo(fx, fy + D * .5); g.lineTo(fx + 1, fy + D * .1); g.stroke();
+  flame(fx, fy + D * .1, D * (2.2 + Math.sin(E.t * 4) * .1) * fire, D * .3);
+  glowAt(fx, fy - D * .5, D * 4, fire * .5, '255,170,80');
+}
+function flame(fx, fy, fh, fw){
+  if(fh < 1) return;
+  const t = E.t;
+  g.globalCompositeOperation = 'lighter';
+  const fgr = g.createRadialGradient(fx, fy - fh * .35, 0, fx, fy - fh * .35, fh * .8);
+  fgr.addColorStop(0, 'rgba(255,240,200,.95)'); fgr.addColorStop(.35, 'rgba(255,170,60,.75)'); fgr.addColorStop(1, 'rgba(255,90,20,0)');
+  g.fillStyle = fgr;
+  g.beginPath(); g.moveTo(fx + Math.sin(t * 40) * 2, fy - fh);
+  g.quadraticCurveTo(fx + fw, fy - fh * .3, fx, fy + 2); g.quadraticCurveTo(fx - fw, fy - fh * .3, fx + Math.sin(t * 40) * 2, fy - fh); g.fill();
+  g.fillStyle = 'rgba(80,140,255,.5)';
+  g.beginPath(); g.ellipse(fx, fy - fh * .03, fw * .45, fh * .11, 0, 0, Math.PI * 2); g.fill();
+  g.globalCompositeOperation = 'source-over';
+}
+// спичка: головка в (x,y), палочка уходит вниз под углом ang
+function drawMatch(x, y, ang, len, burnt, fl){
+  g.save(); g.translate(x, y); g.rotate(ang);
+  const w = Math.max(3, len * .06);
+  g.fillStyle = '#d9b27a'; g.fillRect(-w / 2, 0, w, len);
+  g.fillStyle = '#2a1a10'; g.fillRect(-w / 2, 0, w, len * burnt * .7);
+  g.fillStyle = burnt > .05 ? '#1c120c' : '#8e2418';
+  g.beginPath(); g.ellipse(0, 0, w * .85, w * 1.3, 0, 0, Math.PI * 2); g.fill();
+  g.restore();
+  if(fl > .01){
+    const fh = len * .42 * fl * (1 + Math.sin(E.t * 29) * .06);
+    flame(x, y - w * .5, fh, fh * .3);
+  }
+}
+function drawTorch(tx, ty, D, s){
+  // турбо-зажигалка снизу справа, факел бьёт в (tx,ty)
+  D = Math.min(D, 34);
+  const nx = tx + D * 1.7, ny = ty + D * 1.1 + (1 - s) * D * 5;
+  const a = Math.atan2(ty - ny, tx - nx), dist = Math.hypot(tx - nx, ty - ny);
+  g.save(); g.translate(nx, ny); g.rotate(a);
+  g.fillStyle = '#5d636b'; rr(-D * .1, -D * .22, D * .7, D * .44, 3); g.fill();
+  g.fillStyle = '#26292e'; rr(D * .5, -D * .45, D * 2.4, D * .9, D * .2); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.1)'; g.fillRect(D * .7, -D * .35, D * 2, D * .1);
+  g.fillStyle = '#8a1c1c'; rr(D * 1.6, D * .4, D * .5, D * .25, 3); g.fill();
+  g.restore();
+  if(s > .5){
+    g.save(); g.translate(nx, ny); g.rotate(a);
+    g.globalCompositeOperation = 'lighter';
+    const len = dist * (.95 + Math.sin(E.t * 50) * .04);
+    const jg = g.createLinearGradient(0, 0, len, 0);
+    jg.addColorStop(0, 'rgba(120,170,255,.95)'); jg.addColorStop(.6, 'rgba(90,130,255,.55)'); jg.addColorStop(1, 'rgba(255,160,80,.15)');
+    g.fillStyle = jg;
+    g.beginPath(); g.moveTo(0, -D * .14); g.quadraticCurveTo(len * .6, -D * .12, len, 0); g.quadraticCurveTo(len * .6, D * .12, 0, D * .14); g.fill();
+    g.globalCompositeOperation = 'source-over';
+    g.restore();
+  }
+}
+
+/* ================= ПРЕДМЕТЫ-ПАЛОЧКИ: сигарета, самокрутка, сигарилла, сигара ================= */
+const ASH_LIGHT = ['#55524e', '#a29d95', '#7d7871', '#363431'];
+const ASH_CIGAR = ['#5a5753', '#aca79f', '#86817a', '#3a3734'];
+function drawAsh(xs, len, D, seed, cols){
+  if(len <= .5) return;
+  const h = D * .96, r = rng(seed), xe = xs + len;
+  g.beginPath(); g.moveTo(xs, -h / 2); g.lineTo(xe - D * .08, -h / 2);
+  for(let i = 0; i <= 6; i++){
+    const yy = -h / 2 + h * i / 6, bulge = Math.sin(Math.PI * i / 6) * D * .1;
+    g.lineTo(Math.max(xs, xe - D * .08 + bulge - r() * D * .12), yy);
+  }
+  g.lineTo(xs, h / 2); g.closePath();
+  g.fillStyle = vgrad(-h / 2, h / 2, cols || ASH_LIGHT); g.fill();
+  g.save(); g.clip();
+  const r2 = rng(seed + 11);
+  for(let u = D * .3; u < len; u += D * (.3 + r2() * .35)){
+    g.strokeStyle = `rgba(40,38,35,${.18 + r2() * .22})`; g.lineWidth = .8 + r2();
+    g.beginPath(); const xx = xe - u; g.moveTo(xx, -h / 2);
+    g.bezierCurveTo(xx + D * .08, -h / 6, xx - D * .08, h / 6, xx + r2() * D * .06, h / 2); g.stroke();
+  }
+  for(let i = 0; i < 9; i++){
+    const yy = (r2() - .5) * h * .9, u1 = r2() * len, u2 = u1 + r2() * D * 1.5;
+    g.strokeStyle = r2() < .5 ? 'rgba(235,232,226,.3)' : 'rgba(30,28,26,.25)'; g.lineWidth = .6;
+    g.beginPath(); g.moveTo(xe - u1, yy); g.lineTo(Math.max(xs, xe - u2), yy + (r2() - .5) * 2); g.stroke();
+  }
+  g.restore();
+}
+
+const CAPS = [
+  {n:'Ментол', tint:'196,236,226', stain:'rgba(70,200,165,.6)'},
+  {n:'Вишня', tint:'240,206,214', stain:'rgba(200,40,80,.55)'},
+  {n:'Черника', tint:'208,208,244', stain:'rgba(90,90,210,.55)'}
+];
+
+function makeRod(id, c){
+  const m = {id, name:c.name, warns:c.warns || W_TOB, c};
+  const r0 = rng(c.seed || 5);
+  m.tex = Array.from({length:70}, () => [r0(), r0() - .5, r0(), r0()]);
+  const toW = (lx, ly) => { const a = m.ang + m.wig, co = Math.cos(a), si = Math.sin(a); return [m.cx + lx * co - ly * si, m.cy + lx * si + ly * co]; };
+  const toL = (x, y) => { const a = -(m.ang + m.wig), dx = x - m.cx, dy = y - m.cy, co = Math.cos(a), si = Math.sin(a); return [dx * co - dy * si, dx * si + dy * co]; };
+  m.toW = toW; m.toL = toL;
+  m.xb = () => m.x0 + m.L - m.burn * m.tobL;
+  m.mouth = () => toW(m.x0 + (m.cut || 0) - m.D * .4, -m.D * .3);
+  const LT = () => c.light === 'lighter' ? lighterId : c.light;
+  m.LT = LT;
+  m.tray = () => trayAt(m.cx + m.L * .2, m.L * .5);
+
+  m.layout = () => {
+    const avail = E.bot - E.top;
+    const L = Math.min(W * c.wk, c.maxL, avail * 1.9);
+    m.L = L; m.D = Math.max(c.minD || 12, L * c.dk * (m.thick || 1));
+    m.tipL = L * c.tipK; m.tobL = L * (1 - c.tipK - (c.reserve || 0));
+    m.cx = W * .5; m.cy = (E.top + E.bot) / 2 + avail * .05;
+    m.x0 = -L / 2 - L * .03; m.ang = -.07;
+  };
+  m.reset = () => {
+    Object.assign(m, {lit:false, done:false, burn:0, ash:0, ashMax:rand(...c.ash), ashSeed:(Math.random() * 1e9) | 0,
+      ember:0, lighting:0, sinceLit:9, flame:0, smolder:0, puffs:0, litTime:0, wig:0, wigV:0, carry:0, endIn:-1,
+      drawF:1, burnF:1, coughF:1, thick:1, crook:0, cut:0, maxAsh:0, P:newP(),
+      match:{on:false, life:0, outIn:-1}, caps:c.capsule ? {crushed:false, f:pick(CAPS)} : null,
+      sideTint:c.side || T_SIDE, exhTint:c.exh || T_EXH, fire:0, lid:0, lidOpen:false, misfire:false, gone:false, cheapCol:pick(CHEAP_COLS),
+      phase:c.prep ? c.prep.start : 'ready'});
+    if(c.prep && c.prep.init) c.prep.init(m);
+    m.layout();
+  };
+  function light(){ m.lit = true; m.sinceLit = 0; if(c.light === 'torch') loopStop(); }
+  function dropMatch(){
+    const mt = m.match; if(!mt.on) return;
+    mt.on = false;
+    const [tx, ty] = toW(m.xb(), 0), D = m.D, len = D * 2.6, burnt = Math.min(1, mt.life / 7);
+    E.chunks.push({x:tx + D * .45, y:ty + D * .95, vx:rand(-20, 20), vy:0, ang:0, va:rand(-3, 3), broke:true,
+      draw(){ drawMatch(0, 0, -.5, len, Math.max(burnt, .6), 0); }});
+  }
+  function dropAsh(flicked){
+    const [x, y] = toW(m.xb(), 0), len = m.ash * m.L, D = m.D, seed = m.ashSeed, cols = c.ashCols, T = m.tray();
+    const aim = T ? (T.x - x - len / 2) * .9 : 0;
+    E.chunks.push({x, y, ang:m.ang + m.wig + droop(), vx:aim + (flicked ? rand(10, 40) : rand(-5, 10)), vy:flicked ? rand(30, 90) : 0,
+      va:rand(.5, 2.5) * (Math.random() < .5 ? -1 : 1), broke:false, dust:T_DUST, land:true, ash:m.ash * .35, draw(){ drawAsh(0, len, D, seed, cols); }});
+    m.ash = 0; m.ashSeed = (Math.random() * 1e9) | 0; m.ashMax = rand(...c.ash);
+  }
+  const droop = () => Math.min(.16, m.ash * m.ash * 2.6 * (c.stiff || 1));
+  function flick(){
+    m.wigV += 1.4; sfx.flick();
+    if(m.ash > .015) dropAsh(true);
+    else { const [x, y] = toW(m.xb(), 0); dust(x, y, 4); }
+  }
+  function finish(){
+    m.lit = false; m.done = true; stopP(m);
+    if(m.ash > .01) dropAsh(false);
+    // тушим и бросаем окурок в пепельницу
+    const T = m.tray(), stub = Math.max(m.tipL, m.L * .12) + m.D * .8, mid = m.x0 + stub / 2;
+    const [x, y] = toW(mid, 0), D = m.D, bt = c.butt;
+    m.gone = true;
+    E.chunks.push({x, y, ang:m.ang, vx:T ? (T.x - x) * 1.1 : 0, vy:-60, va:rand(-2, 2), broke:true, land:true, butt:bt, draw(){ drawButt(bt, stub, D); }});
+    bump(m.id);
+    m.endIn = 1.6;
+  }
+
+  m.down = (x, y) => {
+    if(m.done) return;
+    audio();
+    if(m.phase !== 'ready'){ c.prep.down(m, x, y); return; }
+    const lt = LT();
+    if(!m.lit && lt === 'petrol' && !m.lidOpen){ m.lidOpen = true; sfx.clink(); return; }
+    pressP(m);
+    if(!m.lit){
+      m.misfire = false;
+      if(lt === 'piezo') sfx.flint();
+      else if(lt === 'cheap'){
+        sfx.flint();
+        if(Math.random() < .4){
+          m.misfire = true;
+          const [tx, ty] = toW(m.xb() + m.D * .2, m.D * .5);
+          for(let i = 0; i < 6; i++) spark(tx, ty + m.D * 1.2);
+          if(Math.random() < .5) floatText('Осечка', tx + 10, ty + m.D * 2.5);
+        }
+      }
+      else if(lt === 'petrol') sfx.wheel();
+      else if(lt === 'candle') sfx.flint();
+      else if(lt === 'torch'){ sfx.flint(); loopStart(2400, .5, .05, 'highpass'); }
+      else if(lt === 'match' && !m.match.on){ m.match = {on:true, life:0, outIn:-1}; sfx.strike(); }
+    }
+  };
+  m.move = (x, y) => { if(m.phase !== 'ready' && c.prep.move) c.prep.move(m, x, y); };
+  m.up = (x, y) => {
+    if(m.phase !== 'ready'){ c.prep.up(m, x, y); return; }
+    if(!m.P.holding) return;
+    const r = releaseP(m);
+    if(r.puffed){
+      if(r.amt > .25) addPuff(m);
+      const mouthy = c.mouthy;
+      exhale(Math.max(.2, r.amt) * m.drawF, {delay:mouthy ? .2 : .4, mouth:m.mouth, tint:m.exhTint, density:c.density || 1, size:c.size || 1, alpha:c.alpha || 1});
+    } else if(r.tap && m.lit){
+      if(m.caps && !m.caps.crushed && x !== undefined){
+        const [lx, ly] = toL(x, y);
+        if(lx > m.x0 - m.D * .5 && lx < m.x0 + m.tipL && Math.abs(ly) < m.D * 1.6){ crush(); return; }
+      }
+      flick();
+    } else if(r.tap && !m.lit && m.caps && !m.caps.crushed && x !== undefined){
+      const [lx, ly] = toL(x, y);
+      if(lx > m.x0 - m.D * .5 && lx < m.x0 + m.tipL && Math.abs(ly) < m.D * 1.6) crush();
+    }
+  };
+  function crush(){
+    const k = m.caps; k.crushed = true; sfx.pop(); m.wigV += .6;
+    m.exhTint = k.f.tint; m.sideTint = k.f.tint;
+    const [x, y] = toW(m.x0 + m.tipL * .5, -m.D);
+    floatText('Щёлк! ' + k.f.n, x - 30, y - 10);
+  }
+  m.key = k => { if(k === 'f' && m.lit && m.phase === 'ready') flick(); };
+
+  m.update = dt => {
+    if(m.phase !== 'ready'){ c.prep.update(m, dt); return; }
+    const P = m.P;
+    // прикуривание
+    const lt = LT();
+    if(!m.lit && !m.done){
+      if(lt === 'match'){
+        if(P.holding && m.match.on){ m.lighting += dt; if(m.lighting > LTIME.match){ light(); m.match.outIn = .5; } }
+        else if(!P.holding) m.lighting = 0;
+      } else {
+        if(P.holding && !m.misfire){
+          m.lighting += dt;
+          if(lt === 'candle' && Math.random() < dt * 16){ const [tx, ty] = toW(m.xb(), 0); smoke(tx + rand(-3, 3), ty - 4, {vx:rand(-5, 5), vy:-30, r:2, gr:7, a:.4, max:2.5, buoy:-25, drag:.4, turb:20, tint:'34,30,28'}); }
+          if(m.lighting > LTIME[lt]) light();
+        }
+        else if(!P.holding) m.lighting = 0;
+      }
+    }
+    if(m.match.on){
+      m.match.life += dt;
+      if(m.match.life > 7) dropMatch();
+      if(m.match.outIn > 0){ m.match.outIn -= dt; if(m.match.outIn <= 0) dropMatch(); }
+    }
+    m.sinceLit += dt;
+    if(lt === 'petrol' && m.lidOpen && m.lit && m.sinceLit > .8){ m.lidOpen = false; sfx.clack(); }
+    m.lid += ((m.lidOpen ? 1 : 0) - m.lid) * Math.min(1, dt * 14);
+    const fireOn = lt !== 'match' && P.holding && !m.misfire && !m.done && (!m.lit || m.sinceLit < .35) && (lt !== 'petrol' || m.lid > .9);
+    const visOn = lt !== 'match' && !m.done && ((P.holding && (!m.lit || m.sinceLit < .35)) || (lt === 'petrol' && (m.lidOpen || m.lid > .05)));
+    m.fire += ((fireOn ? 1 : 0) - m.fire) * Math.min(1, dt * (fireOn ? 9 : 10));
+    m.flame += ((visOn ? 1 : 0) - m.flame) * Math.min(1, dt * (visOn ? 9 : 6));
+
+    puffTick(m, dt, m.lit && !m.done);
+    if(P.puffing && P.inhaled > c.cough * m.coughF){
+      stopP(m); addPuff(m);
+      const [x, y] = toW(m.x0, -m.D);
+      coughFx(x, y, 'кхе-кхе', {mouth:m.mouth, tint:m.exhTint});
+    }
+    if(m.lit){
+      const d = (c.burnIdle + P.v * c.burnPuff * m.burnF) * dt;
+      m.burn += d; m.ash += d * (m.tobL / m.L) * .93; m.litTime += dt;
+      m.maxAsh = Math.max(m.maxAsh, m.ash);
+      if(m.ash > m.ashMax) dropAsh(false);
+      if(m.burn >= 1){ m.burn = 1; finish(); }
+      if(Math.random() < dt * (1.2 + P.v * 22)) sfx.crackle();
+      if(P.v > .3 && Math.random() < dt * 7 * P.v * (1 + m.crook * 3)) { const [x, y] = toW(m.xb() + m.D * .05, rand(-.4, .3) * m.D); spark(x, y); }
+    }
+    const flick = .06 * Math.sin(E.t * 13.1) + .05 * Math.sin(E.t * 7.3 + 1) + .04 * Math.sin(E.t * 23.7);
+    let target = m.lit ? .38 + .62 * P.v + flick : 0;
+    if(!m.lit && lt === 'torch' && m.lighting > 0) target = m.lighting / LTIME.torch * .7;
+    if(!m.lit && lt === 'candle' && m.lighting > 0) target = m.lighting / LTIME.candle * .5;
+    m.ember += (target - m.ember) * Math.min(1, dt * (m.lit || m.lighting ? 8 : 1.5));
+    if(m.lit || m.smolder > 0){
+      const k = m.lit ? 1 - .65 * P.v : m.smolder / 3.5;
+      m.carry += dt * (c.sideRate || 34) * k;
+      while(m.carry > 1){ m.carry--; const [x, y] = toW(m.xb() + m.D * .1, -m.D * .45); sideSmoke(x, y, m.sideTint, c.sideSize || 1); }
+    }
+    if(m.smolder > 0) m.smolder -= dt;
+    m.wigV += (-m.wig * 400 - m.wigV * 12) * dt; m.wig += m.wigV * dt;
+    if(m.endIn > 0){ m.endIn -= dt; if(m.endIn <= 0) c.end(m); }
+  };
+
+  /* ---- рисование ---- */
+  function bodyPath(a, b, R){
+    g.beginPath();
+    if(!m.crook){ g.rect(a, -R, b - a, R * 2); return; }
+    const amp = m.D * .07 * m.crook, s = c.seed || 1;
+    const n = Math.max(2, Math.ceil((b - a) / 8));
+    for(let i = 0; i <= n; i++){ const x = a + (b - a) * i / n; const y = -R + Math.sin(x * .045 + s) * amp + Math.sin(x * .11) * amp * .5; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+    for(let i = n; i >= 0; i--){ const x = a + (b - a) * i / n; const y = R + Math.sin(x * .05 + s * 2) * amp - Math.sin(x * .13) * amp * .4; g.lineTo(x, y); }
+    g.closePath();
+  }
+  m.drawRod = (alpha) => {
+    const D = m.D, R = D / 2, xs = m.x0 + m.cut, xt = m.x0 + m.tipL, xe = m.x0 + m.L, xb = m.xb();
+    const sx = E.shake > 0 ? rand(-1, 1) * E.shake * 8 : 0, sy = E.shake > 0 ? rand(-1, 1) * E.shake * 6 : 0;
+    g.save(); g.translate(m.cx + sx, m.cy + sy); g.rotate(m.ang + m.wig);
+    if(alpha !== undefined) g.globalAlpha = alpha;
+    // тень
+    g.fillStyle = 'rgba(0,0,0,.35)';
+    g.beginPath(); g.ellipse((xs + xb) / 2, R * 2.6, Math.max(1, (xb - xs) / 2), R * .5, 0, 0, Math.PI * 2); g.fill();
+
+    // тело
+    const bodyA = c.tip === 'cap' ? xs : xt;
+    if(xb > bodyA){
+      bodyPath(bodyA, xb, R);
+      g.fillStyle = vgrad(-R, R, c.body); g.fill();
+      g.save(); bodyPath(bodyA, xb, R); g.clip();
+      if(c.tex === 'leaf'){
+        for(const [u, v, a, l] of m.tex){
+          const x = bodyA + u * (m.L * 1.05);
+          if(x > xb) continue;
+          g.strokeStyle = a < .5 ? 'rgba(20,10,4,.22)' : 'rgba(255,220,170,.12)'; g.lineWidth = .7 + l;
+          g.beginPath(); g.moveTo(x, -R); g.quadraticCurveTo(x + D * (v * 1.4), 0, x + D * (a - .5) * 1.2, R); g.stroke();
+        }
+      } else if(c.tex === 'roll'){
+        for(const [u, v, a] of m.tex){
+          const x = bodyA + u * (m.L * .95); if(x > xb) continue;
+          g.fillStyle = `rgba(110,70,30,${.12 + a * .18})`; g.fillRect(x, v * D * .9, 2 + a * 4, 1.2);
+        }
+        g.strokeStyle = 'rgba(120,100,70,.25)'; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(bodyA, -R * .35); g.lineTo(xb, -R * .3); g.stroke();
+      }
+      g.restore();
+      if(c.brand && xb > xt + D * .5){
+        g.save(); g.beginPath(); g.rect(xt, -R, Math.max(0, xb - xt - D * .3), D); g.clip();
+        g.fillStyle = 'rgba(70,60,50,.32)'; g.font = `600 ${Math.max(7, D * .26)}px Oswald, sans-serif`;
+        g.textBaseline = 'middle'; g.fillText('П Е Р Е К У Р', xt + D * .5, -R * .05);
+        g.restore();
+      }
+    }
+    // мундштук / фильтр
+    if(c.tip === 'cork'){
+      g.fillStyle = vgrad(-R, R, ['#9b5f29', '#e3a660', '#c27f3d', '#6f4119']); g.fillRect(m.x0, -R, m.tipL, D);
+      for(const [u, v, a, l] of m.tex){ g.fillStyle = l < .7 ? 'rgba(90,48,14,.45)' : 'rgba(255,220,170,.35)'; g.fillRect(m.x0 + u * m.tipL, v * D * .95, .4 + a * 1.1, .4 + a * 1.1); }
+      g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(m.x0, -R, 2, D);
+      g.fillStyle = '#d8b45a'; g.fillRect(xt - m.tipL * .05, -R, 1.6, D);
+      if(m.caps){
+        const cx = m.x0 + m.tipL * .45;
+        if(m.caps.crushed){
+          const sg = g.createRadialGradient(cx, 0, 0, cx, 0, D * .7);
+          sg.addColorStop(0, m.caps.f.stain); sg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = sg; g.fillRect(cx - D * .8, -R, D * 1.6, D);
+        } else {
+          g.strokeStyle = 'rgba(70,35,10,.45)'; g.lineWidth = 1;
+          g.beginPath(); g.arc(cx, 0, D * .2, 0, Math.PI * 2); g.stroke();
+          g.fillStyle = 'rgba(255,230,190,.25)'; g.beginPath(); g.arc(cx - D * .06, -D * .06, D * .07, 0, Math.PI * 2); g.fill();
+        }
+      }
+    } else if(c.tip === 'wood'){
+      const r = R * .9;
+      g.fillStyle = vgrad(-r, r, ['#8a6a3c', '#e2c28c', '#c29d63', '#6a4d26']);
+      rr(m.x0, -r, m.tipL + 2, r * 2, r * .5); g.fill();
+      g.strokeStyle = 'rgba(90,60,25,.35)'; g.lineWidth = .8;
+      for(let i = 0; i < 4; i++){ const yy = -r * .6 + i * r * .4; g.beginPath(); g.moveTo(m.x0 + 4, yy); g.bezierCurveTo(m.x0 + m.tipL * .3, yy + 2, m.x0 + m.tipL * .6, yy - 2, xt, yy + 1); g.stroke(); }
+      g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(xt - 1, -R, 2, D);
+    } else if(c.tip === 'crutch'){
+      bodyPath(m.x0, xt, R);
+      g.fillStyle = vgrad(-R, R, ['#bba67a', '#eadcb9', '#d6c49a', '#9a875e']); g.fill();
+      g.save(); bodyPath(m.x0, xt, R); g.clip();
+      g.strokeStyle = 'rgba(120,95,55,.45)'; g.lineWidth = 1;
+      for(let x = m.x0 - D; x < xt; x += D * .35){ g.beginPath(); g.moveTo(x, R); g.lineTo(x + D * .6, -R); g.stroke(); }
+      g.restore();
+      g.fillStyle = 'rgba(60,40,20,.35)'; g.beginPath(); g.ellipse(m.x0, 0, D * .08, R * .9, 0, 0, Math.PI * 2); g.fill();
+    } else if(c.tip === 'cap'){
+      if(!m.cut){
+        g.fillStyle = vgrad(-R, R, c.body);
+        g.beginPath(); g.ellipse(xs, 0, R * .55, R, 0, Math.PI / 2, Math.PI * 1.5); g.fill();
+      } else {
+        g.fillStyle = '#5a3c22'; g.beginPath(); g.ellipse(xs, 0, D * .1, R * .96, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = 'rgba(30,15,5,.6)'; for(let i = 0; i < 6; i++){ g.fillRect(xs - 2 + Math.random() * 3, -R * .8 + i * R * .3, 2, 2); }
+      }
+      // кольцо сигары
+      const b0 = m.x0 + m.L * .07, b1 = m.x0 + m.L * .14;
+      g.fillStyle = vgrad(-R, R, ['#8a6512', '#f2d07a', '#c99a30', '#6b4a0c']); g.fillRect(b0, -R - .5, b1 - b0, D + 1);
+      g.fillStyle = vgrad(-R * .6, R * .6, ['#5a0d12', '#c22a35', '#8e1520', '#3e070b']);
+      g.beginPath(); g.ellipse((b0 + b1) / 2, 0, (b1 - b0) * .34, R * .62, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,230,160,.85)'; g.font = `600 ${Math.max(6, R * .32)}px Oswald, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('П', (b0 + b1) / 2, 0); g.textAlign = 'start';
+    }
+
+    // обугленный край
+    if(xb > bodyA && m.burn > 0){
+      const cw = D * .45, pts = [];
+      for(let i = 0; i <= 8; i++) pts.push([xb - D * (.12 + .1 * (Math.sin(i * 1.9 + m.burn * 37) * .5 + .5)), -R + D * i / 8]);
+      g.beginPath(); g.moveTo(xb - cw, -R); g.lineTo(xb, -R); g.lineTo(xb, R); g.lineTo(xb - cw, R); g.closePath();
+      const cg = g.createLinearGradient(xb - cw, 0, xb, 0);
+      cg.addColorStop(0, 'rgba(150,110,60,0)'); cg.addColorStop(.45, 'rgba(120,80,40,.35)'); cg.addColorStop(1, 'rgba(60,36,18,.6)');
+      g.fillStyle = cg; g.fill();
+      g.beginPath(); g.moveTo(xb, -R); for(const [px, py] of pts) g.lineTo(px, py); g.lineTo(xb, R); g.closePath();
+      g.fillStyle = '#20140b'; g.fill();
+      if(m.ember > .02){
+        g.strokeStyle = `rgba(255,${120 + 60 * m.ember | 0},60,${.25 + .6 * m.ember})`; g.lineWidth = 1.2;
+        g.beginPath(); pts.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py)); g.stroke();
+      }
+    }
+    // торец
+    if(!m.lit && !m.done && m.burn === 0){
+      if(c.twist){
+        g.fillStyle = vgrad(-R, R, c.body);
+        g.beginPath(); g.moveTo(xe, -R * .8); g.quadraticCurveTo(xe + D * .3, -R * .3, xe + D * .55, -R * .1);
+        g.lineTo(xe + D * .62, R * .15); g.quadraticCurveTo(xe + D * .3, R * .3, xe, R * .8); g.closePath(); g.fill();
+      } else {
+        g.fillStyle = c.footCol || '#6b4220'; g.fillRect(xe - 2, -R, 3, D);
+        const r = rng(3); g.fillStyle = '#3d230f';
+        for(let i = 0; i < 10; i++) g.fillRect(xe - 1 + r() * 2.5, -R + r() * D, 1.5, 1.5);
+      }
+    }
+    if(m.burn > 0 || m.ember > .02){
+      const e = m.ember;
+      g.beginPath(); g.ellipse(xb, 0, D * .14, R * .98, 0, -Math.PI / 2, Math.PI / 2);
+      const fg = g.createRadialGradient(xb, 0, 0, xb, 0, R);
+      fg.addColorStop(0, `rgb(255,${150 + 90 * e | 0},${60 + 120 * e * e | 0})`);
+      fg.addColorStop(.6, `rgb(${120 + 135 * e | 0},${30 + 60 * e | 0},10)`);
+      fg.addColorStop(1, `rgb(${40 + 60 * e | 0},20,12)`);
+      g.fillStyle = e > .02 ? fg : '#2a2522'; g.fill();
+    }
+    if(m.ash > 0){
+      g.save(); g.translate(xb, 0); g.rotate(droop());
+      drawAsh(0, m.ash * m.L, D, m.ashSeed, c.ashCols);
+      if(m.ember > .02){
+        const ag = g.createLinearGradient(0, 0, D * .55, 0);
+        ag.addColorStop(0, `rgba(255,${90 + 80 * m.ember | 0},30,${.85 * m.ember})`); ag.addColorStop(1, 'rgba(255,90,30,0)');
+        g.fillStyle = ag; g.fillRect(0, -R * .96, Math.min(D * .55, m.ash * m.L), D * .96);
+      }
+      g.restore();
+    }
+    if(m.ember > .02){ g.fillStyle = `rgb(255,${120 + 100 * m.ember | 0},${50 + 80 * m.ember | 0})`; g.fillRect(xb - 1.5, -R, 3, D); }
+    g.restore();
+    const [ex, ey] = toW(xb, 0);
+    glowAt(ex, ey, D * (1 + m.ember * 1.6), m.ember);
+  };
+  m.draw = () => {
+    const [ex, ey] = toW(m.xb(), 0);
+    drawBg(ex, ey, m.ember);
+    if(m.phase !== 'ready'){ c.prep.draw(m); return; }
+    if(!m.gone) m.drawRod();
+    // инструмент
+    const lt = LT(), [tx, ty] = toW(m.xb() + m.D * .2, m.D * .5), Dt = Math.min(m.D, 52);
+    if(m.flame > .01){
+      if(lt === 'piezo') drawPiezo(tx, ty + Dt * 1.2, Dt, m.flame, m.fire);
+      if(lt === 'cheap') drawCheap(tx, ty + Dt * 1.35, Dt, m.flame, m.fire, m.cheapCol);
+      if(lt === 'petrol') drawPetrol(tx, ty + Dt * 1.55, Dt, m.flame, m.fire, m.lid);
+      if(lt === 'candle') drawCandle(tx, ty + Dt * 1.6, Dt, m.flame, m.fire);
+      if(lt === 'torch') drawTorch(tx + m.D * .1, ty - m.D * .4, m.D, m.flame);
+    }
+    if(lt === 'match' && m.match.on){
+      const life = m.match.life, fl = life > 6 ? Math.max(0, 7 - life) : Math.min(1, life * 6);
+      const len = m.D * 2.6;
+      drawMatch(tx + m.D * .25, ty + m.D * .35, -.5, len, Math.min(1, life / 7), fl);
+    }
+  };
+  m.hint = () => {
+    if(m.phase !== 'ready') return c.prep.hint(m);
+    if(m.done) return '';
+    if(!m.lit){
+      const lt = LT();
+      if(lt === 'match') return m.match.on ? (m.P.holding ? 'Держи у кончика…' : 'Спичка горит. Зажми, чтобы прикурить') : 'Нажми, чтобы чиркнуть спичкой';
+      if(lt === 'torch') return m.P.holding ? 'Прогреваю кончик…' : 'Зажми, чтобы раскурить горелкой';
+      if(lt === 'petrol' && !m.lidOpen) return 'Нажми, чтобы откинуть крышку';
+      if(lt === 'cheap' && m.misfire) return 'Осечка. Отпусти и чиркни ещё раз';
+      if(lt === 'candle') return m.P.holding ? 'От свечи раскуривается медленно, держи…' : 'Зажми, чтобы прикурить от свечи';
+      return m.P.holding ? 'Держи…' : 'Зажми, чтобы прикурить';
+    }
+    if(m.P.puffing) return m.P.inhaled > c.cough * m.coughF * .7 ? 'Хватит, хватит' : 'Затяжка…';
+    if(m.ash > m.ashMax * .8) return 'Пепел сейчас упадёт. Коротко нажми, чтобы стряхнуть';
+    if(m.caps && !m.caps.crushed) return 'Зажми, чтобы затянуться · нажми на фильтр, чтобы раздавить кнопку';
+    return c.hintLit || 'Зажми, чтобы затянуться · нажми коротко, чтобы стряхнуть';
+  };
+  m.stats = () => c.stats(m);
+  return m;
+}
+
+/* ---- общий счёт ---- */
+const totals = load('perekur.totals', null) || {cigarette:load('perekur.total', 0)};
+function bump(id){ totals[id] = (totals[id] || 0) + 1; save('perekur.totals', totals); }
+const puffTotals = load('perekur.puffs', null) || {};
+function addPuff(m){ m.puffs++; puffTotals[m.id] = (puffTotals[m.id] || 0) + 1; save('perekur.puffs', puffTotals); }
+
+/* ---- дневник ---- */
+const DIARY_UNITS = {cigarette:'сигарет', roll:'самокруток', cigarillo:'сигарилл', cigar:'сигар', pipe:'трубок', hookah:'кальянов', vape:null, heat:'стиков'};
+function openDiary(confirmReset){
+  if(M && M.P) stopP(M);
+  let sp = 0, sd = 0;
+  const rows = ORDER.map(id => {
+    const p = puffTotals[id] || 0, d = DIARY_UNITS[id] ? (totals[id] || 0) : null;
+    sp += p; sd += d || 0;
+    return `<tr><td>${MODES[id].name}</td><td class="${p ? '' : 'zero'}">${p}</td><td class="${d ? '' : 'zero'}">${d === null ? '—' : d}</td></tr>`;
+  }).join('');
+  $('diaryCard').innerHTML = `<h2>Дневник</h2>
+    <div style="overflow-x:auto"><table class="dtable"><thead><tr><th>Что</th><th>Затяжек</th><th>Докурено</th></tr></thead>
+    <tbody>${rows}<tr class="sum"><td>Всего</td><td>${sp}</td><td>${sd}</td></tr></tbody></table></div>
+    <p>Электронку не докуривают до конца, поэтому у неё только затяжки. Счёт хранится в этом браузере.</p>
+    <div class="row">${confirmReset
+      ? `<button class="btn primary" id="dYes" type="button">Да, стереть</button><button class="btn" id="dNo" type="button">Отмена</button>`
+      : `<button class="btn primary" id="dClose" type="button">Закрыть</button><button class="btn" id="dReset" type="button">Обнулить</button>`}</div>`;
+  $('diary').hidden = false;
+  if(confirmReset){
+    $('dYes').addEventListener('click', () => {
+      for(const k of Object.keys(puffTotals)) delete puffTotals[k];
+      for(const k of Object.keys(totals)) delete totals[k];
+      save('perekur.puffs', puffTotals); save('perekur.totals', totals); lastHud = '';
+      openDiary(false);
+    });
+    $('dNo').addEventListener('click', () => openDiary(false));
+    $('dNo').focus();
+  } else {
+    $('dClose').addEventListener('click', () => { $('diary').hidden = true; });
+    $('dReset').addEventListener('click', () => openDiary(true));
+    $('dClose').focus();
+  }
+}
+function cigLife(){ return ((totals.cigarette || 0) + (totals.roll || 0)) * MIN_PER_CIG; }
+function fmtLife(min){ return min >= 60 ? `−${Math.floor(min / 60)} ч${min % 60 ? ` ${min % 60} мин` : ''}` : `−${min} мин`; }
+function fmtTime(s){ return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; }
+
+/* ---- конец ---- */
+function showEnd(title, big, note, againLabel){
+  $('endCard').innerHTML = `<h2>${title}</h2><p class="big">${big}</p>${note ? `<p>${note}</p>` : ''}
+    <div class="row"><button class="btn primary" id="again" type="button">${againLabel || 'Ещё одну'}</button>
+    <button class="btn" id="stop" type="button">Хватит</button></div>`;
+  $('end').hidden = false;
+  $('again').addEventListener('click', restart);
+  $('stop').addEventListener('click', () => {
+    $('endCard').innerHTML = `<h2>Перерыв окончен</h2><p class="big">Хорошее решение.</p>
+      <div class="row"><button class="btn" id="again2" type="button">Всё-таки ещё</button></div>`;
+    $('again2').addEventListener('click', restart);
+    $('again2').focus();
+  });
+  $('again').focus();
+}
+function puffWord(n){ return `${n} ${plural(n, 'затяжка', 'затяжки', 'затяжек')}`; }
+
+/* ================= режимы ================= */
+const MODES = {};
+const ORDER = ['cigarette', 'roll', 'cigarillo', 'cigar', 'pipe', 'hookah', 'vape', 'heat'];
+
+/* ---- сигарета ---- */
+MODES.cigarette = makeRod('cigarette', {
+  name:'Сигарета', butt:'cig', wk:.8, maxL:640, dk:.08, tipK:.27, tip:'cork', brand:true, capsule:true,
+  body:['#d8d2c6', '#fbf8f2', '#ebe5d9', '#a9a295'],
+  burnIdle:1 / 240, burnPuff:1 / 22, cough:3.4, ash:[.12, .24], light:'lighter',
+  stats:m => [['Затяжек', m.puffs], ['Выкурено', totals.cigarette || 0], ['Жизни', fmtLife(cigLife())]],
+  end:m => showEnd('Докурено', `${puffWord(m.puffs)} за ${fmtTime(m.litTime)}`,
+    `Сигарет здесь выкурено: ${totals.cigarette}. По оценке UCL (2024), одна сигарета в среднем стоит около ${MIN_PER_CIG} минут жизни.`)
+});
+
+/* ---- самокрутка ---- */
+const N_BINS = 14;
+const rollPrep = {
+  start:'pour',
+  init(m){
+    const r = rng(77);
+    m.roll = {bins:new Array(N_BINS).fill(0), prog:0, lastY:null, holding:false, strands:Array.from({length:N_BINS * 64}, () => [r(), r(), r() * Math.PI, 5 + r() * 9, r()]), sealT:0};
+    m.phase = 'pour';
+  },
+  geo(m){ const PW = m.L * .9, PH = m.L * .34; return {PW, PH, x:m.cx - PW / 2, y:m.cy - PH / 2}; },
+  stat(m){
+    const b = m.roll.bins, avg = b.reduce((a, v) => a + v, 0) / b.length;
+    const sd = Math.sqrt(b.reduce((a, v) => a + (v - avg) * (v - avg), 0) / b.length);
+    return {avg, even:avg > 0 ? clamp(1 - sd / avg, 0, 1) : 0};
+  },
+  down(m, x, y){
+    const R = m.roll; R.holding = true; R.lastY = y;
+    if(m.phase === 'pour') loopStart(3200, .7, .02);
+    if(m.phase === 'lick'){
+      sfx.lick(); m.phase = 'sealing'; R.sealT = 0;
+    }
+  },
+  move(m, x, y){
+    const R = m.roll;
+    if(R.holding && m.phase === 'roll' && R.lastY !== null){
+      const gm = rollPrep.geo(m); R.prog = Math.min(1, R.prog + Math.abs(y - R.lastY) / (gm.PH * 2.2));
+    }
+    R.lastY = y;
+  },
+  up(m){
+    const R = m.roll; R.holding = false; loopStop();
+    if(m.phase === 'pour'){
+      const s = rollPrep.stat(m);
+      if(s.avg >= .85) m.phase = 'roll';
+    }
+  },
+  update(m, dt){
+    const R = m.roll, gm = rollPrep.geo(m);
+    if(m.phase === 'pour' && R.holding){
+      const u = (E.px - gm.x) / gm.PW;
+      if(u >= -.05 && u <= 1.05){
+        const fi = clamp(u, 0, .999) * N_BINS;
+        for(let i = 0; i < N_BINS; i++){ const d = i + .5 - fi; R.bins[i] = Math.min(2.6, R.bins[i] + dt * 2.2 * Math.exp(-d * d / 1.2)); }
+        if(Math.random() < dt * 40) crumb(E.px + rand(-8, 8), E.py - 10, m.cy + rand(-gm.PH * .3, gm.PH * .3));
+      }
+    }
+    if(m.phase === 'roll' && R.holding) R.prog = Math.min(1, R.prog + dt * .3);
+    if(m.phase === 'roll' && R.prog >= 1){ m.phase = 'lick'; R.holding = false; }
+    if(m.phase === 'sealing'){
+      R.sealT += dt;
+      if(R.sealT > .5){
+        const s = rollPrep.stat(m);
+        m.thick = clamp(Math.sqrt(s.avg), .82, 1.3);
+        m.crook = clamp(1 - s.even, 0, 1) * 1.6;
+        m.burnF = 1 + m.crook * .8;
+        m.drawF = s.avg > 1.5 ? .65 : 1;
+        m.coughF = s.avg > 1.5 ? .8 : 1;
+        m.layout();
+        const word = s.avg > 1.5 ? 'Туго набита' : s.even > .82 ? 'Ровно скручено' : s.even > .6 ? 'Сойдёт' : 'Кривовато';
+        floatText(word, m.cx - 50, m.cy - m.D * 2);
+        m.phase = 'ready';
+      }
+    }
+  },
+  draw(m){
+    const R = m.roll, gm = rollPrep.geo(m), k = R.prog, e = k * k * (3 - 2 * k);
+    const D = m.L * .08 * clamp(Math.sqrt(Math.max(.5, rollPrep.stat(m).avg)), .82, 1.3);
+    const h = lerp(gm.PH, D, e), y0 = m.cy - h / 2;
+    // бумага
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(m.cx, m.cy + h / 2 + 18, gm.PW / 2, 8, 0, 0, Math.PI * 2); g.fill();
+    if(k < .02){
+      g.fillStyle = '#efe9dc'; g.fillRect(gm.x, y0, gm.PW, h);
+      g.fillStyle = 'rgba(0,0,0,.06)'; g.fillRect(gm.x, y0, gm.PW, 3);
+      g.fillStyle = 'rgba(210,190,140,.5)'; g.fillRect(gm.x, y0 + 2, gm.PW, h * .08);
+    } else {
+      g.fillStyle = vgrad(y0, y0 + h, ['#d6cfbf', '#f1ebdd', '#e2dac9', '#a69c88']); g.fillRect(gm.x, y0, gm.PW, h);
+      g.strokeStyle = 'rgba(120,100,70,.3)'; g.lineWidth = 1; g.beginPath(); g.moveTo(gm.x, y0 + h * .35); g.lineTo(gm.x + gm.PW, y0 + h * .32); g.stroke();
+    }
+    // табак
+    const binW = gm.PW / N_BINS;
+    g.save(); g.beginPath(); g.rect(gm.x, y0, gm.PW, h); g.clip();
+    for(let i = 0; i < N_BINS; i++){
+      const b = R.bins[i];
+      if(b > .02){
+        const bh = lerp(gm.PH * .4 * Math.min(1.4, .6 + b * .4), h * .8, e) * .8;
+        g.fillStyle = `rgba(110,68,32,${Math.min(.85, b * .55) * (k > .02 ? lerp(1, .3, e) : 1)})`;
+        rr(gm.x + i * binW - 1, m.cy - bh / 2, binW + 2, bh, bh * .3); g.fill();
+      }
+    }
+    for(let i = 0; i < N_BINS; i++){
+      const n = Math.min(64, Math.floor(R.bins[i] * 28));
+      for(let j = 0; j < n; j++){
+        const [u, v, a, l, c] = R.strands[i * 64 + j];
+        const sx = gm.x + (i + u) * binW, sy = m.cy + (v - .5) * lerp(gm.PH * .4 * Math.min(1.4, .6 + R.bins[i] * .4), h * .8, e);
+        g.strokeStyle = c < .33 ? '#6b4524' : c < .66 ? '#8a5a2e' : '#4f3218';
+        g.globalAlpha = k > .02 ? lerp(1, .25, e) : 1;
+        g.lineWidth = 1.7; g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + Math.cos(a) * l, sy + Math.sin(a) * l * .5); g.stroke();
+      }
+    }
+    g.globalAlpha = 1; g.restore();
+    if(m.phase === 'lick' || m.phase === 'sealing'){
+      const a = m.phase === 'sealing' ? clamp(R.sealT * 2, 0, 1) : .3 + .2 * Math.sin(E.t * 4);
+      g.strokeStyle = `rgba(200,220,255,${a})`; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(gm.x, y0 + h * .2); g.lineTo(gm.x + gm.PW, y0 + h * .2); g.stroke();
+    }
+    // полоска уровня
+    if(m.phase === 'pour'){
+      const s = rollPrep.stat(m), bw = gm.PW, by = m.cy + gm.PH / 2 + 34;
+      g.fillStyle = 'rgba(233,229,221,.12)'; g.fillRect(gm.x, by, bw, 4);
+      g.fillStyle = s.avg > 1.5 ? '#ff6a1f' : '#e9e5dd'; g.fillRect(gm.x, by, bw * clamp(s.avg / 2, 0, 1), 4);
+      g.fillStyle = 'rgba(120,220,140,.8)'; g.fillRect(gm.x + bw * .425, by - 3, 2, 10); g.fillRect(gm.x + bw * .75, by - 3, 2, 10);
+    }
+  },
+  hint(m){
+    if(m.phase === 'pour'){
+      const s = rollPrep.stat(m);
+      if(s.avg < .05) return 'Зажми и веди пальцем вдоль бумаги: насыпь табак';
+      return `Табак: ${Math.round(s.avg * 100)}%, ровность ${Math.round(s.even * 100)}%. ${s.avg >= .85 ? 'Отпусти, чтобы скручивать' : 'Сыпь ровнее по всей длине'}`;
+    }
+    if(m.phase === 'roll') return 'Води пальцем вверх-вниз: скручивай';
+    if(m.phase === 'lick' || m.phase === 'sealing') return 'Нажми, чтобы лизнуть край и заклеить';
+    return '';
+  }
+};
+MODES.roll = makeRod('roll', {
+  name:'Самокрутка', butt:'roll', wk:.78, maxL:600, dk:.08, tipK:.1, tip:'crutch', tex:'roll', twist:true, seed:9,
+  body:['#d6cfbf', '#f1ebdd', '#e2dac9', '#a69c88'],
+  burnIdle:1 / 200, burnPuff:1 / 18, cough:3.0, ash:[.1, .2], light:'lighter', prep:rollPrep,
+  stats:m => [['Затяжек', m.puffs], ['Скручено', totals.roll || 0], ['Жизни', fmtLife(cigLife())]],
+  end:m => showEnd('Докурено', `${puffWord(m.puffs)} за ${fmtTime(m.litTime)}`,
+    `${m.crook > .5 ? 'Кривая вышла, горела неровно. ' : ''}Самокруток здесь выкурено: ${totals.roll}.`, 'Скрутить ещё')
+});
+
+/* ---- сигарилла ---- */
+MODES.cigarillo = makeRod('cigarillo', {
+  name:'Сигарилла', butt:'cigarillo', wk:.7, maxL:540, dk:.062, tipK:.2, tip:'wood', tex:'leaf', seed:3, reserve:.02, mouthy:true,
+  body:['#5a3a20', '#a2714a', '#7a4e2b', '#3e2613'], footCol:'#4a2c14',
+  burnIdle:1 / 300, burnPuff:1 / 26, cough:2.0, ash:[.14, .26], ashCols:ASH_CIGAR, light:'match',
+  side:'168,176,196', exh:'206,198,188', density:1.3,
+  hintLit:'Не в затяг: короткие затяжки · нажми коротко, чтобы стряхнуть',
+  stats:m => [['Затяжек', m.puffs], ['Выкурено', totals.cigarillo || 0]],
+  end:m => showEnd('Докурено', `${puffWord(m.puffs)} за ${fmtTime(m.litTime)}`, `Сигарилл здесь выкурено: ${totals.cigarillo}.`)
+});
+
+/* ---- сигара ---- */
+const CIGAR_CM = 15;
+const cutPrep = {
+  start:'cut',
+  init(m){ m.cutT = 0; m.cutPos = 0; },
+  range(m){ return m.L * .075; },
+  down(m){
+    const d = m.cutPos, L = m.L;
+    m.cut = d; sfx.cut();
+    let word;
+    if(d < L * .012){ m.drawF = .55; word = 'Мелко: тугая тяга'; }
+    else if(d > L * .042){ m.burnF = 1.5; m.drawF = 1.15; word = 'Глубоко: обёртка поползёт'; }
+    else word = 'Ровный срез';
+    const [x, y] = m.toW(m.x0, 0), D = m.D, body = m.c.body;
+    E.chunks.push({x, y, vx:rand(-60, -20), vy:-80, ang:m.ang, va:rand(-5, 5), broke:true,
+      draw(){ g.fillStyle = vgrad(-D / 2, D / 2, body); g.beginPath(); g.ellipse(d / 2, 0, D * .28 + d / 2, D / 2, 0, Math.PI / 2, Math.PI * 1.5); g.fill(); g.fillRect(0, -D / 2, d, D); }});
+    floatText(word, m.cx - 60, m.cy - m.D * 1.6);
+    m.phase = 'ready';
+  },
+  up(){}, move(){},
+  update(m, dt){ m.cutT += dt; m.cutPos = (Math.sin(m.cutT * 2.6 - Math.PI / 2) * .5 + .5) * cutPrep.range(m); },
+  draw(m){
+    m.drawRod();
+    const D = m.D, R = D / 2, L = m.L;
+    g.save(); g.translate(m.cx, m.cy); g.rotate(m.ang);
+    // зона идеального среза
+    g.fillStyle = 'rgba(120,220,140,.22)'; g.fillRect(m.x0 + L * .012, -R, L * .03, D);
+    g.strokeStyle = 'rgba(120,220,140,.9)'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(m.x0 + L * .012, -R - D * .25); g.lineTo(m.x0 + L * .042, -R - D * .25); g.stroke();
+    // гильотина
+    const x = m.x0 + m.cutPos;
+    g.fillStyle = '#2f3339'; rr(x - D * .18, -R - D * .75, D * .36, D * .75 - 2, 4); g.fill();
+    rr(x - D * .18, R + 2, D * .36, D * .6, 4); g.fill();
+    g.fillStyle = 'rgba(220,226,235,.55)'; g.fillRect(x - 1, -R - 2, 2, D + 4);
+    g.fillStyle = '#4a5058'; rr(x - D * .1, -R - D * 1.3, D * .2, D * .6, D * .1); g.fill();
+    g.restore();
+  },
+  hint(){ return 'Сначала обрежь сигару. Нажми, когда лезвие в зелёной зоне'; }
+};
+MODES.cigar = makeRod('cigar', {
+  name:'Сигара', butt:'cigar', wk:.82, maxL:680, dk:.15, minD:20, tipK:0, tip:'cap', tex:'leaf', seed:11, reserve:.2, mouthy:true, stiff:.25,
+  body:['#4a2e18', '#8a5c32', '#6a4322', '#2f1c0d'], footCol:'#3a2410',
+  burnIdle:1 / 600, burnPuff:1 / 30, cough:1.6, ash:[.3, .5], ashCols:ASH_CIGAR, light:'torch', prep:cutPrep,
+  side:'166,172,188', exh:'208,200,190', density:1.6, size:1.3, alpha:1.15, sideSize:1.4, sideRate:40,
+  hintLit:'Сигару не затягивают: короткие затяжки. Держи пепел подольше',
+  stats:m => [['Затяжек', m.puffs], ['Пепел', (m.ash * CIGAR_CM).toFixed(1).replace('.', ',') + ' см'], ['Рекорд', (load('perekur.ashRecord', 0)).toFixed(1).replace('.', ',') + ' см']],
+  end:m => {
+    const cm = m.maxAsh * CIGAR_CM, rec = load('perekur.ashRecord', 0);
+    if(cm > rec) save('perekur.ashRecord', cm);
+    showEnd('Сигара докурена', `${puffWord(m.puffs)} за ${fmtTime(m.litTime)}`,
+      `Самый длинный пепел: ${cm.toFixed(1).replace('.', ',')} см${cm > rec ? ', новый рекорд' : ''}. До кольца не докуривают, остаток оставляют в пепельнице.`, 'Ещё одну');
+  }
+});
+// сохранять рекорд пепла по ходу
+const _cigUpd = MODES.cigar.update;
+MODES.cigar.update = dt => { _cigUpd(dt); const m = MODES.cigar, cm = m.ash * CIGAR_CM; if(cm > load('perekur.ashRecord', 0) + .05) save('perekur.ashRecord', cm); };
+
+/* ---- трубка ---- */
+MODES.pipe = (() => {
+  const m = {id:'pipe', name:'Трубка', warns:W_TOB};
+  m.layout = () => {
+    const avail = E.bot - E.top;
+    m.S = Math.min(W * .95, 620, avail * 1.7);
+    m.bw = m.S * .2; m.bh = m.S * .27;
+    m.bx = W / 2 + m.S * .3; m.by = (E.top + E.bot) / 2 - m.bh * .35;
+  };
+  m.reset = () => {
+    Object.assign(m, {phase:'pack', fill:0, tamps:0, tampT:0, tob:1, lit:false, done:false, ember:0, boost:0, heat:0, puffs:0,
+      lighting:0, match:{on:false, life:0, outIn:-1}, P:newP(), carry:0, tilt:0, knockT:-1, knocked:false, endIn:-1, litTime:0, hold:false, burnt:0});
+    m.layout();
+  };
+  const toW = (lx, ly) => { const co = Math.cos(m.tilt), si = Math.sin(m.tilt); return [m.bx + lx * co - ly * si, m.by + lx * si + ly * co]; };
+  m.tray = () => trayAt(m.bx - m.S * .05, m.S * .4);
+  m.mouth = () => toW(-m.S * .74, m.bh * .64);
+  const rx = () => m.bw * .4, ry = () => m.bw * .13;
+
+  m.down = () => {
+    audio();
+    if(m.done) return;
+    m.hold = true;
+    if(m.phase === 'pack'){ m.pressT = E.t; loopStart(3000, .7, .02); return; }
+    if(m.phase === 'light'){
+      pressP(m);
+      if(!m.match.on){ m.match = {on:true, life:0, outIn:-1}; sfx.strike(); }
+      return;
+    }
+    if(m.phase === 'smoke'){ pressP(m); return; }
+    if(m.phase === 'knock'){ m.knockT = 0; m.phase = 'knocking'; }
+  };
+  m.up = () => {
+    m.hold = false;
+    if(m.phase === 'pack'){
+      loopStop();
+      if(E.t - m.pressT < .22) tamp();
+      return;
+    }
+    if(m.phase === 'light'){ releaseP(m); m.lighting = 0; return; }
+    if(m.phase === 'smoke'){
+      if(!m.P.holding) return;
+      const r = releaseP(m);
+      if(r.puffed){ if(r.amt > .25) addPuff(m); exhale(Math.max(.2, r.amt), {delay:.35, mouth:m.mouth, tint:'210,204,196', density:1.2}); }
+      else if(r.tap) tamp();
+    }
+  };
+  m.move = () => {};
+  function tamp(){
+    m.tampT = .35; sfx.tamp();
+    if(m.phase === 'pack'){
+      if(m.fill < .1) return;
+      m.fill *= .72; m.tamps++;
+      if(m.fill >= .78 && m.tamps >= 2){
+        m.phase = 'light';
+        const [x, y] = toW(-m.bw, -m.bh * .4);
+        floatText(m.tamps > 4 ? 'Набита туго' : 'Набита как надо', x - 40, y);
+      }
+    } else if(m.phase === 'smoke'){ m.boost = 1; const [x, y] = toW(0, 0); dust(x, y - 4, 3); }
+  }
+  m.update = dt => {
+    const P = m.P;
+    m.tampT = Math.max(0, m.tampT - dt);
+    if(m.phase === 'pack' && m.hold && E.t - m.pressT > .22){
+      m.fill = Math.min(1.25, m.fill + dt * .45);
+      const [x, y] = toW(rand(-rx(), rx()), -m.S * .3);
+      if(Math.random() < dt * 45) crumb(x, y, m.fill > 1.12 ? m.by + m.bh * 1.2 : m.by - (m.fill - 1) * m.bh * .3, pick(['#6b4524', '#8a5a2e', '#4f3218']));
+      if(m.fill >= 1.25 && Math.random() < dt * 4){ const [sx, sy] = toW(rx() * (Math.random() < .5 ? -1 : 1), -6); crumb(sx, sy, H + 10); }
+    }
+    if(m.match.on){
+      m.match.life += dt;
+      if(m.match.life > 7 || (m.match.outIn > 0 && (m.match.outIn -= dt) <= 0)) m.match.on = false;
+    }
+    if(m.phase === 'light'){
+      if(P.holding && m.match.on){ m.lighting += dt; if(m.lighting > 1.6){ m.phase = 'smoke'; m.lit = true; m.match.outIn = .5; m.fill += .08; } }
+    }
+    puffTick(m, dt, m.phase === 'smoke');
+    if(m.phase === 'smoke'){
+      m.litTime += dt;
+      m.heat = clamp(m.heat + (P.puffing ? dt * .3 : -dt * .07), 0, 1.2);
+      if(m.heat > 1){
+        m.heat = .7; stopP(m); addPuff(m);
+        const [x, y] = toW(-m.S * .6, 0);
+        coughFx(x, y, 'Обжёг язык', {mouth:m.mouth, tint:'210,204,196'});
+      }
+      m.boost = Math.max(0, m.boost - dt * .4);
+      m.tob -= dt * (1 / 450 + P.v / 26);
+      m.burnt = 1 - m.tob;
+      if(Math.random() < dt * (1 + P.v * 16)) sfx.crackle();
+      if(m.tob <= 0){ m.tob = 0; m.phase = 'knock'; stopP(m); m.lit = false; }
+    }
+    const fl = .05 * Math.sin(E.t * 11) + .04 * Math.sin(E.t * 6.7);
+    const target = m.lit ? .3 + .6 * P.v + .25 * m.boost + fl : (m.phase === 'light' && P.holding && m.match.on ? m.lighting / 1.6 * .5 : 0);
+    m.ember += (target - m.ember) * Math.min(1, dt * 6);
+    if(m.lit || m.ember > .1){
+      m.carry += dt * 22 * (.3 + m.ember);
+      while(m.carry > 1){ m.carry--; const [x, y] = toW(rand(-rx() * .6, rx() * .6), -3); sideSmoke(x, y, '172,182,204', 1.2); }
+    }
+    if(m.phase === 'knocking'){
+      m.knockT += dt;
+      const k = Math.min(1, m.knockT / 1.1);
+      m.tilt = -Math.sin(k * Math.PI) * 2.1;
+      if(m.knockT > .45 && !m.knocked){
+        m.knocked = true; sfx.knock();
+        const [x, y] = toW(0, 0), T = m.tray(), s = m.bw * .5;
+        dust(x, y, 10, '110,106,100');
+        E.chunks.push({x, y, vx:T ? (T.x - x) * 1.2 : 0, vy:40, ang:0, va:3, broke:true, land:true, ash:.3,
+          draw(){ g.fillStyle = '#4a4642'; g.beginPath(); g.ellipse(0, 0, s, s * .55, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = '#7a756e'; g.beginPath(); g.ellipse(-s * .2, -s * .15, s * .5, s * .25, 0, 0, Math.PI * 2); g.fill(); }});
+      }
+      if(m.knockT > 1.2){ m.done = true; m.phase = 'done'; m.knocked = false; bump('pipe'); m.endIn = .5; }
+    }
+    if(m.endIn > 0){ m.endIn -= dt; if(m.endIn <= 0) showEnd('Трубка выкурена', `${puffWord(m.puffs)} за ${fmtTime(m.litTime)}`, `Трубок здесь выкурено: ${totals.pipe}. Дай ей остыть, прежде чем набивать снова.`, 'Набить ещё'); }
+  };
+  m.draw = () => {
+    const S = m.S, bw = m.bw, bh = m.bh;
+    const [gx, gy] = toW(0, 0);
+    drawBg(gx, gy, m.ember);
+    g.save(); g.translate(m.bx, m.by); g.rotate(m.tilt);
+    // тень
+    if(!m.tilt){ g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(-S * .3, bh * 1.25, S * .45, bh * .1, 0, 0, Math.PI * 2); g.fill(); }
+    // мундштук
+    g.fillStyle = vgrad(bh * .6, bh * .85, ['#0d0d0f', '#3a3c42', '#1b1c20', '#050506']);
+    g.beginPath(); g.moveTo(-S * .32, bh * .66); g.quadraticCurveTo(-S * .52, bh * .63, -S * .74, bh * .62);
+    g.lineTo(-S * .74, bh * .71); g.quadraticCurveTo(-S * .52, bh * .76, -S * .32, bh * .84); g.closePath(); g.fill();
+    // хвостовик
+    g.fillStyle = vgrad(bh * .55, bh * .92, ['#5a2c14', '#a1613a', '#7a4120', '#3a1a0a']);
+    g.beginPath(); g.moveTo(-bw * .4, bh * .55); g.lineTo(-S * .32, bh * .64); g.lineTo(-S * .32, bh * .86); g.lineTo(-bw * .25, bh * .93); g.closePath(); g.fill();
+    g.fillStyle = '#c8ccd2'; g.fillRect(-S * .325, bh * .635, 4, bh * .23);
+    // чаша
+    g.beginPath(); g.moveTo(-bw / 2, 0); g.bezierCurveTo(-bw / 2, bh * .7, -bw * .35, bh, 0, bh); g.bezierCurveTo(bw * .35, bh, bw / 2, bh * .7, bw / 2, 0); g.closePath();
+    const bg = g.createLinearGradient(-bw / 2, 0, bw / 2, 0);
+    bg.addColorStop(0, '#3a1a0a'); bg.addColorStop(.35, '#a1613a'); bg.addColorStop(.6, '#7a4120'); bg.addColorStop(1, '#2a1206');
+    g.fillStyle = bg; g.fill();
+    if(m.heat > .4){ g.fillStyle = `rgba(255,60,20,${(m.heat - .4) * .25})`; g.fill(); }
+    g.save(); g.clip(); g.strokeStyle = 'rgba(30,10,0,.25)'; g.lineWidth = 1;
+    for(let i = 0; i < 9; i++){ const x = -bw * .42 + i * bw * .105; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + bw * .04, bh * .4, x - bw * .03, bh * .7, x * .6, bh); g.stroke(); }
+    g.restore();
+    // обод и жерло
+    g.fillStyle = '#8a5230'; g.beginPath(); g.ellipse(0, 0, bw / 2, bw * .17, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#140a05'; g.beginPath(); g.ellipse(0, 0, rx(), ry(), 0, 0, Math.PI * 2); g.fill();
+    // табак
+    const f = m.phase === 'pack' || m.phase === 'light' ? m.fill : m.tob * .95;
+    if(f > .05){
+      const vis = clamp(f, 0, 1);
+      g.save(); g.beginPath(); g.ellipse(0, 0, rx(), ry(), 0, 0, Math.PI * 2); g.clip();
+      g.fillStyle = `rgb(${40 + 70 * vis | 0},${22 + 40 * vis | 0},${10 + 15 * vis | 0})`; g.fillRect(-rx(), -ry(), rx() * 2, ry() * 2);
+      const r = rng(4);
+      for(let i = 0; i < 40 * vis; i++){ g.strokeStyle = r() < .5 ? 'rgba(160,100,50,.6)' : 'rgba(40,20,8,.6)'; g.lineWidth = 1; const x = (r() - .5) * rx() * 2, y = (r() - .5) * ry() * 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + r() * 6 - 3, y + r() * 2 - 1); g.stroke(); }
+      if(m.ember > .02){
+        g.globalCompositeOperation = 'lighter';
+        const eg = g.createRadialGradient(0, 0, 0, 0, 0, rx());
+        eg.addColorStop(0, `rgba(255,150,60,${.8 * m.ember})`); eg.addColorStop(1, `rgba(255,60,10,${.2 * m.ember})`);
+        g.fillStyle = eg; g.fillRect(-rx(), -ry(), rx() * 2, ry() * 2);
+        g.globalCompositeOperation = 'source-over';
+        if(m.burnt > .2){ g.fillStyle = `rgba(120,116,110,${Math.min(.6, m.burnt * .6)})`; g.fillRect(-rx(), -ry(), rx() * 2, ry() * 2); }
+      }
+      g.restore();
+      if(f > 1){
+        const mh = (f - 1) * bh * .5;
+        g.fillStyle = '#7a4e28'; g.beginPath(); g.ellipse(0, 0, rx() * 1.05, mh + ry(), 0, Math.PI, 0); g.fill();
+      }
+    }
+    // тампер
+    if(m.tampT > 0){
+      const k = Math.sin((1 - m.tampT / .35) * Math.PI), y = -S * .32 + k * S * .26;
+      g.fillStyle = '#b8bec6'; rr(-bw * .09, y, bw * .18, S * .12, 3); g.fill();
+      g.fillStyle = '#7c838c'; g.beginPath(); g.ellipse(0, y + S * .12, bw * .14, bw * .04, 0, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+    glowAt(gx, gy, bw * (1 + m.ember), m.ember * .8);
+    if(m.match.on){
+      const life = m.match.life, fl = life > 6 ? Math.max(0, 7 - life) : Math.min(1, life * 6);
+      drawMatch(m.bx + bw * .12, m.by - bw * .25, -.7, bw * .9, Math.min(1, life / 7), fl);
+    }
+    // шкала жара
+    if(m.phase === 'smoke'){
+      const x = m.bx + bw * .75, y = m.by, h = bh;
+      g.fillStyle = 'rgba(233,229,221,.12)'; g.fillRect(x, y, 4, h);
+      g.fillStyle = m.heat > .8 ? '#ff6a1f' : '#e9e5dd'; g.fillRect(x, y + h * (1 - clamp(m.heat, 0, 1)), 4, h * clamp(m.heat, 0, 1));
+    }
+  };
+  m.hint = () => {
+    if(m.phase === 'pack'){
+      if(m.fill > 1.2) return 'Через край. Нажми коротко, чтобы утрамбовать';
+      return m.fill < .05 ? 'Зажми, чтобы насыпать табак в чашу' : `Зажми — сыпать, нажми коротко — утрамбовать. Утрамбовано ${m.tamps} из 2+`;
+    }
+    if(m.phase === 'light') return m.match.on ? 'Зажми, чтобы раскурить над чашей' : 'Нажми, чтобы чиркнуть спичкой';
+    if(m.phase === 'smoke'){
+      if(m.P.puffing) return m.heat > .8 ? 'Трубка горячая, отпусти' : 'Затяжка…';
+      return 'Тяни понемногу, не перегревай · нажми коротко, чтобы подтрамбовать';
+    }
+    if(m.phase === 'knock') return 'Табак догорел. Нажми, чтобы выбить трубку';
+    return '';
+  };
+  m.stats = () => [['Затяжек', m.puffs], ['Жар', Math.round(clamp(m.heat, 0, 1) * 100) + '%'], ['Табак', Math.round((m.phase === 'pack' || m.phase === 'light' ? clamp(m.fill, 0, 1) : m.tob) * 100) + '%']];
+  return m;
+})();
+
+/* ---- кальян ---- */
+const HOOK_FLAV = ['Мята', 'Двойное яблоко', 'Виноград', 'Арбуз', 'Лимон'];
+MODES.hookah = (() => {
+  const m = {id:'hookah', name:'Кальян', warns:W_HOOK};
+  m.layout = () => {
+    const avail = E.bot - E.top;
+    m.S = Math.min(avail * .98, W * 1.05, 700);
+    m.hx = W / 2 + m.S * .2; m.yt = E.top + (avail - m.S) / 2;
+  };
+  m.reset = () => {
+    Object.assign(m, {coals:0, drops:[], heat:0, ash:0, tob:1, puffs:0, P:newP(), vs:0, bub:[], done:false, endIn:-1, carry:0, flav:pick(HOOK_FLAV), time:0});
+    m.layout();
+  };
+  const Y = k => m.yt + m.S * k;
+  m.mouth = () => [m.hx - m.S * .46, Y(.3)];
+  m.down = (x, y) => {
+    audio(); if(m.done) return;
+    if(m.coals < 3){ m.coals++; m.drops.push(0); sfx.place(); return; }
+    pressP(m); m.downY = y;
+  };
+  m.up = (x, y) => {
+    if(!m.P.holding) return;
+    const r = releaseP(m);
+    if(r.puffed){
+      if(r.amt > .25) addPuff(m);
+      m.vsOut = true;
+      exhale(Math.max(.25, r.amt) * (.35 + m.heat), {delay:.45, mouth:m.mouth, tint:'226,226,222', density:2, size:1.5, alpha:1.15, speed:1.4, dir:-.75});
+    } else if(r.tap){
+      if(y < Y(.2) && x > m.hx - m.S * .2 && x < m.hx + m.S * .2){
+        if(m.ash > .05){ dust(m.hx, Y(.03), 12, '170,166,160'); sfx.tamp(); }
+        m.ash = Math.max(0, m.ash - .8); m.heat = Math.min(1, m.heat + .05);
+        floatText('Повороши', m.hx + m.S * .15, Y(.05));
+      }
+    }
+  };
+  m.move = () => {};
+  m.update = dt => {
+    const P = m.P;
+    m.drops = m.drops.map(v => Math.min(1, v + dt * 4));
+    if(m.coals > 0){
+      m.time += dt;
+      m.ash = Math.min(1, m.ash + dt / 50);
+      const target = (m.coals / 3) * (1 - m.ash * .65);
+      m.heat += (target - m.heat) * dt * .18;
+    }
+    puffTick(m, dt, m.coals === 3 && !m.done, [500, .6, .05, 'lowpass']);
+    if(P.puffing){
+      m.heat += dt * .06;
+      if(Math.random() < dt * 22) sfx.bubble();
+      if(Math.random() < dt * 30) m.bub.push({x:m.hx + rand(-6, 6), y:Y(.9), r:rand(2, 5), vy:rand(-90, -50)});
+      m.vs = Math.min(1, m.vs + dt * (.2 + m.heat * .6));
+      m.tob -= dt * m.heat / 22;
+      if(P.inhaled > 4.5 || m.heat > 1.15){
+        stopP(m); addPuff(m);
+        coughFx(m.mouth()[0], m.mouth()[1], m.heat > 1.15 ? 'Горчит' : 'кхе-кхе', {mouth:m.mouth, tint:'226,226,222', dir:-.75});
+        if(m.heat > 1.15) m.heat = .8;
+      }
+    } else m.vs = Math.max(0, m.vs - dt * (m.vsOut ? .9 : .2));
+    if(m.vs <= 0) m.vsOut = false;
+    for(let i = m.bub.length - 1; i >= 0; i--){ const b = m.bub[i]; b.y += b.vy * dt; b.x += Math.sin(b.y * .1) * .3; if(b.y < Y(.8)) m.bub.splice(i, 1); }
+    if(m.coals === 3 && Math.random() < dt * 8 * m.heat){ sideSmoke(m.hx + rand(-m.S * .06, m.S * .06), Y(.02), '190,196,210', 1.3); }
+    if(m.tob <= 0 && !m.done){ m.tob = 0; m.done = true; stopP(m); bump('hookah'); m.endIn = 1.5; }
+    if(m.endIn > 0){ m.endIn -= dt; if(m.endIn <= 0) showEnd('Чаша докурена', `${puffWord(m.puffs)} за ${fmtTime(m.time)}`, `Вкус: ${m.flav.toLowerCase()}. Кальянов здесь выкурено: ${totals.hookah}.`, 'Забить новую'); }
+  };
+  function coal(x, y, s, glow, ash){
+    g.fillStyle = '#1c1715'; rr(x - s / 2, y - s / 2, s, s, s * .15); g.fill();
+    if(glow > .02){
+      g.globalCompositeOperation = 'lighter';
+      const cg = g.createRadialGradient(x, y + s * .3, 0, x, y, s * .8);
+      cg.addColorStop(0, `rgba(255,120,40,${.9 * glow})`); cg.addColorStop(1, 'rgba(255,60,10,0)');
+      g.fillStyle = cg; rr(x - s / 2, y - s / 2, s, s, s * .15); g.fill();
+      g.globalCompositeOperation = 'source-over';
+    }
+    if(ash > .02){ g.fillStyle = `rgba(170,165,158,${ash * .85})`; rr(x - s / 2, y - s / 2, s, s * (.4 + ash * .6), s * .15); g.fill(); }
+  }
+  m.draw = () => {
+    const S = m.S, hx = m.hx;
+    drawBg(hx, Y(.05), m.heat * .9);
+    // кальянная колба
+    const vy = Y(.82), vr = S * .16;
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(hx, Y(.99), vr * 1.1, S * .02, 0, 0, Math.PI * 2); g.fill();
+    g.save(); g.beginPath(); g.arc(hx, vy, vr, 0, Math.PI * 2); g.clip();
+    g.fillStyle = 'rgba(160,200,230,.07)'; g.fillRect(hx - vr, vy - vr, vr * 2, vr * 2);
+    if(m.vs > .01){ g.fillStyle = `rgba(225,225,220,${m.vs * .7})`; g.fillRect(hx - vr, vy - vr, vr * 2, vr * .9 + 4); }
+    g.fillStyle = 'rgba(60,120,170,.35)'; g.fillRect(hx - vr, Y(.8), vr * 2, vr * 2);
+    g.fillStyle = 'rgba(150,200,240,.35)'; g.fillRect(hx - vr, Y(.8), vr * 2, 1.5);
+    g.fillStyle = 'rgba(200,205,212,.5)'; g.fillRect(hx - S * .01, Y(.62), S * .02, S * .28);
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1;
+    for(const b of m.bub){ g.beginPath(); g.arc(b.x, b.y, b.r, 0, Math.PI * 2); g.stroke(); }
+    g.restore();
+    g.strokeStyle = 'rgba(200,225,240,.35)'; g.lineWidth = 1.5; g.beginPath(); g.arc(hx, vy, vr, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.08)'; g.beginPath(); g.ellipse(hx - vr * .45, vy - vr * .3, vr * .12, vr * .4, .3, 0, Math.PI * 2); g.fill();
+    // горлышко
+    g.fillStyle = 'rgba(160,200,230,.12)'; g.fillRect(hx - S * .04, Y(.62), S * .08, S * .06);
+    g.strokeStyle = 'rgba(200,225,240,.3)'; g.strokeRect(hx - S * .04, Y(.62), S * .08, S * .06);
+    // шланг
+    g.lineCap = 'round';
+    g.strokeStyle = '#272b33'; g.lineWidth = S * .032;
+    g.beginPath(); g.moveTo(hx - S * .06, Y(.42)); g.bezierCurveTo(hx - S * .3, Y(1.0), hx - S * .62, Y(.88), hx - S * .5, Y(.42)); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = S * .008; g.stroke();
+    g.strokeStyle = '#a9afb8'; g.lineWidth = S * .02;
+    g.beginPath(); g.moveTo(hx - S * .5, Y(.42)); g.lineTo(hx - S * .465, Y(.31)); g.stroke();
+    g.lineCap = 'butt';
+    // шахта
+    g.fillStyle = hgrad(hx - S * .022, hx + S * .022, ['#5a6068', '#d8dde4', '#9aa1aa', '#4a5058']);
+    g.fillRect(hx - S * .022, Y(.18), S * .044, S * .45);
+    for(const k of [.26, .34, .5, .58]){ g.fillStyle = hgrad(hx - S * .04, hx + S * .04, ['#5a6068', '#e2e6ec', '#a0a7b0', '#4a5058']); g.beginPath(); g.ellipse(hx, Y(k), S * .04, S * .012, 0, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = hgrad(hx - S * .07, hx - S * .02, ['#5a6068', '#d8dde4', '#9aa1aa', '#4a5058']); g.fillRect(hx - S * .07, Y(.41), S * .05, S * .022);
+    // блюдце
+    g.fillStyle = hgrad(hx - S * .16, hx + S * .16, ['#4a5058', '#d0d5dc', '#959ca6', '#3a4048']);
+    g.beginPath(); g.ellipse(hx, Y(.2), S * .16, S * .024, 0, 0, Math.PI * 2); g.fill();
+    // чаша
+    const bt = Y(.075), bb = Y(.185);
+    g.fillStyle = hgrad(hx - S * .1, hx + S * .1, ['#6a2a14', '#c9643a', '#9a4422', '#4a1a0a']);
+    g.beginPath(); g.moveTo(hx - S * .1, bt); g.lineTo(hx + S * .1, bt); g.lineTo(hx + S * .045, bb); g.lineTo(hx - S * .045, bb); g.closePath(); g.fill();
+    g.fillStyle = '#c9ced6'; g.beginPath(); g.ellipse(hx, bt, S * .1, S * .016, 0, 0, Math.PI * 2); g.fill();
+    // угли
+    const cs = S * .052;
+    for(let i = 0; i < m.coals; i++){
+      const d = m.drops[i] ?? 1, cx = hx + (i - 1) * S * .062, cy = Y(.045) - (1 - d) * S * .25;
+      coal(cx, cy, cs, (m.heat * (1 - m.ash * .7)) * (.7 + .3 * Math.sin(E.t * 3 + i)), m.ash);
+    }
+    if(m.coals < 3){
+      for(let i = m.coals; i < 3; i++){ g.strokeStyle = 'rgba(233,229,221,.18)'; g.setLineDash([3, 3]); g.strokeRect(hx + (i - 1) * S * .062 - cs / 2, Y(.045) - cs / 2, cs, cs); g.setLineDash([]); }
+    }
+    glowAt(hx, Y(.045), S * .2, m.heat * (1 - m.ash * .6) * .7);
+    // шкала жара
+    const x = hx + S * .2, y0 = Y(.08), h = S * .3;
+    g.fillStyle = 'rgba(233,229,221,.12)'; g.fillRect(x, y0, 4, h);
+    g.fillStyle = m.heat > 1 ? '#ff6a1f' : '#e9e5dd'; g.fillRect(x, y0 + h * (1 - clamp(m.heat / 1.15, 0, 1)), 4, h * clamp(m.heat / 1.15, 0, 1));
+  };
+  m.hint = () => {
+    if(m.done) return '';
+    if(m.coals < 3) return `Нажми, чтобы положить уголь (${m.coals} из 3)`;
+    if(m.P.puffing) return 'Тяну…';
+    if(m.heat < .35) return 'Чаша прогревается. Можно тянуть, но дыма пока мало';
+    if(m.ash > .5) return 'Угли покрылись золой. Нажми на угли, чтобы поворошить';
+    return 'Зажми, чтобы тянуть · нажми на угли, чтобы поворошить';
+  };
+  m.stats = () => [['Затяжек', m.puffs], ['Жар', Math.round(clamp(m.heat, 0, 1.2) * 100) + '%'], ['Чаша', Math.round(m.tob * 100) + '%'], ['Вкус', m.flav]];
+  return m;
+})();
+
+/* ---- электронка ---- */
+const VAPE_FLAV = [
+  {n:'Арбуз', c:['#5a1029', '#e0577f', '#b8325c', '#3e0a1c'], led:'255,80,130', tint:'238,226,232'},
+  {n:'Манго-лёд', c:['#7a3c10', '#f6b04a', '#d88a2a', '#5a2a08'], led:'255,190,80', tint:'240,236,226'},
+  {n:'Черника', c:['#141c4a', '#6a7ff0', '#3a4bb0', '#0c1234'], led:'110,140,255', tint:'226,228,242'},
+  {n:'Мята', c:['#083d32', '#4fd1b0', '#2a9a80', '#052a22'], led:'80,240,200', tint:'226,242,236'}
+];
+MODES.vape = (() => {
+  const m = {id:'vape', name:'Электронка', warns:W_NIC, endless:true};
+  m.layout = () => {
+    const avail = E.bot - E.top;
+    m.Hd = Math.min(avail * .62, 330, W * .85); m.wd = m.Hd * .27;
+    m.cx = W / 2 + m.Hd * .12; m.cy = (E.top + E.bot) / 2 + m.Hd * .06; m.ang = -.45;
+  };
+  m.reset = () => { Object.assign(m, {f:pick(VAPE_FLAV), puffs:0, P:newP(), led:0, wig:0, wigV:0}); m.layout(); };
+  const toW = (lx, ly) => { const a = m.ang + m.wig, co = Math.cos(a), si = Math.sin(a); return [m.cx + lx * co - ly * si, m.cy + lx * si + ly * co]; };
+  m.mouth = () => toW(0, -m.Hd / 2 - m.Hd * .17);
+  m.down = () => { audio(); pressP(m); };
+  m.up = () => {
+    if(!m.P.holding) return;
+    const r = releaseP(m);
+    if(r.puffed){
+      if(r.amt > .25) addPuff(m);
+      exhale(Math.max(.3, r.amt) * 1.2, {delay:.35, mouth:m.mouth, tint:m.f.tint, density:1.8, size:1.9, alpha:.8, speed:1.35, dir:-.3, dur:1.6});
+    } else if(r.tap){ m.wigV += 1; sfx.click(); }
+  };
+  m.move = () => {};
+  m.update = dt => {
+    puffTick(m, dt, true, [3800, .7, .03]);
+    const P = m.P;
+    if(P.puffing && Math.random() < dt * 14) sfx.crackle();
+    if(P.puffing && P.inhaled > 4){ stopP(m); addPuff(m); coughFx(m.mouth()[0], m.mouth()[1], 'Гарь!', {mouth:m.mouth, tint:m.f.tint, dir:-.3}); }
+    m.led += ((P.puffing ? 1 : 0) - m.led) * Math.min(1, dt * 12);
+    m.wigV += (-m.wig * 400 - m.wigV * 12) * dt; m.wig += m.wigV * dt;
+  };
+  m.draw = () => {
+    const Hd = m.Hd, wd = m.wd, [lx, ly] = toW(0, Hd / 2 - wd * .45);
+    drawBg(lx, ly, m.led * .8, m.f.led);
+    g.save(); g.translate(m.cx, m.cy); g.rotate(m.ang + m.wig);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(wd * .6, Hd * .1, wd * .6, Hd * .55, 0, 0, Math.PI * 2); g.fill();
+    // мундштук
+    g.fillStyle = hgrad(-wd * .4, wd * .4, ['#050506', '#3a3c42', '#16171a', '#050506']);
+    g.beginPath(); g.moveTo(-wd * .4, -Hd / 2 + 4); g.lineTo(-wd * .28, -Hd / 2 - Hd * .15); g.quadraticCurveTo(0, -Hd / 2 - Hd * .17, wd * .28, -Hd / 2 - Hd * .15); g.lineTo(wd * .4, -Hd / 2 + 4); g.closePath(); g.fill();
+    g.fillStyle = '#000'; g.fillRect(-wd * .12, -Hd / 2 - Hd * .162, wd * .24, 2);
+    // корпус
+    g.fillStyle = hgrad(-wd / 2, wd / 2, m.f.c); rr(-wd / 2, -Hd / 2, wd, Hd, wd * .3); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.18)'; rr(-wd * .3, -Hd / 2 + wd * .2, wd * .08, Hd - wd * .4, wd * .04); g.fill();
+    // надпись
+    g.save(); g.rotate(-Math.PI / 2); g.fillStyle = 'rgba(255,255,255,.88)'; g.font = `600 ${wd * .32}px Oswald, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(m.f.n.toUpperCase(), 0, 0); g.restore();
+    // светодиод
+    g.fillStyle = m.led > .05 ? `rgba(${m.f.led},${.4 + .6 * m.led})` : 'rgba(0,0,0,.4)';
+    g.beginPath(); g.arc(0, Hd / 2 - wd * .45, wd * .1, 0, Math.PI * 2); g.fill();
+    g.restore();
+    glowAt(lx, ly, wd * 1.5, m.led, m.f.led);
+  };
+  m.hint = () => {
+    if(m.P.puffing) return m.P.inhaled > 3 ? 'Испаритель сейчас подгорит' : 'Затяжка…';
+    return 'Зажми, чтобы затянуться. Сразу после затяжки можно сделать трюк';
+  };
+  m.stats = () => [['Затяжек', m.puffs], ['Трюков', E.tricks], ['Вкус', m.f.n]];
+  return m;
+})();
+
+/* ---- айкос ---- */
+const HEAT_PUFFS = 14;
+MODES.heat = (() => {
+  const m = {id:'heat', name:'Айкос', warns:W_NIC};
+  m.layout = () => {
+    const avail = E.bot - E.top;
+    m.Lh = Math.min(W * .6, 400, avail * 1.4); m.Dh = m.Lh * .14;
+    m.cx = W / 2 + m.Lh * .18; m.cy = (E.top + E.bot) / 2 + avail * .04; m.ang = -.07;
+  };
+  m.reset = () => { Object.assign(m, {phase:'insert', ins:0, out:0, press:0, heatT:0, left:HEAT_PUFFS, puffs:0, P:newP(), buzz:0, led:0, done:false, endIn:-1, stain:0}); m.layout(); };
+  const toW = (lx, ly) => { const co = Math.cos(m.ang), si = Math.sin(m.ang); return [m.cx + lx * co - ly * si, m.cy + lx * si + ly * co]; };
+  const stickX = () => -m.Lh / 2 - m.Lh * .3 - (1 - m.ins) * m.Lh * .4 - m.out * m.Lh * .6;
+  m.tray = () => trayAt(m.cx - m.Lh * .45, m.Lh * .5);
+  m.mouth = () => toW(stickX() - m.Dh * .3, -m.Dh * .2);
+  function vibrate(n){ m.buzz = .3 * n; sfx.buzz(n); }
+  m.down = () => {
+    audio(); if(m.done) return;
+    if(m.phase === 'insert'){ m.phase = 'inserting'; sfx.slide(); return; }
+    if(m.phase === 'remove'){ m.phase = 'removing'; sfx.slide(); return; }
+    pressP(m);
+  };
+  m.up = () => {
+    if(!m.P.holding) return;
+    const r = releaseP(m);
+    if(m.phase === 'smoke' && r.puffed){
+      if(r.amt > .3){ addPuff(m); m.left--; m.stain = Math.min(1, m.stain + 1 / HEAT_PUFFS); if(m.left <= 2 && m.left > 0) vibrate(1); }
+      exhale(Math.max(.2, r.amt) * .8, {delay:.4, mouth:m.mouth, tint:'232,232,230', density:.9, alpha:.8});
+      if(m.left <= 0){ m.phase = 'remove'; setTimeout(() => vibrate(2), 600); }
+    }
+    if(m.phase === 'press') m.press = 0;
+  };
+  m.move = () => {};
+  m.update = dt => {
+    const P = m.P;
+    m.buzz = Math.max(0, m.buzz - dt);
+    if(m.phase === 'inserting'){ m.ins = Math.min(1, m.ins + dt * 3); if(m.ins >= 1) m.phase = 'press'; }
+    if(m.phase === 'press' && P.holding){ m.press += dt; if(m.press > 1.2){ m.phase = 'heating'; m.heatT = 0; vibrate(1); stopP(m); } }
+    if(m.phase === 'heating'){ m.heatT += dt; if(m.heatT > 7){ m.phase = 'smoke'; vibrate(2); } }
+    puffTick(m, dt, m.phase === 'smoke', [1100, .6, .015]);
+    if(P.puffing && P.inhaled > 3.5){ stopP(m); addPuff(m); m.left--; coughFx(m.mouth()[0], m.mouth()[1], 'кхе', {mouth:m.mouth, tint:'232,232,230'}); if(m.left <= 0) m.phase = 'remove'; }
+    if(m.phase === 'removing'){
+      m.out = Math.min(1, m.out + dt * 2.5);
+      if(m.out >= 1){
+        m.done = true; m.phase = 'done'; bump('heat'); m.endIn = .6;
+        const [x, y] = toW(stickX() + m.Lh * .27, 0), Ds = m.Dh * .55, Ls = m.Lh * .55, st = m.stain, T = m.tray();
+        E.chunks.push({x, y, vx:T ? (T.x - x) * 1.1 : -30, vy:-60, ang:m.ang, va:-2, broke:true, land:true, butt:'heat', draw(){ stick(-Ls / 2, Ds, Ls, st); }});
+      }
+    }
+    m.led = m.phase === 'heating' ? .5 + .5 * Math.sin(E.t * 6) : m.phase === 'smoke' ? 1 : m.phase === 'press' && P.holding ? 1 : 0;
+    if(m.endIn > 0){ m.endIn -= dt; if(m.endIn <= 0) showEnd('Стик закончился', `${puffWord(m.puffs)}`, `Стиков здесь выкурено: ${totals.heat}. Держатель надо поставить на зарядку, а лезвие иногда чистить.`, 'Новый стик'); }
+  };
+  function stick(x, Ds, Ls, stain){
+    const R = Ds / 2;
+    g.fillStyle = vgrad(-R, R, ['#d8d2c6', '#fbf8f2', '#ebe5d9', '#a9a295']); g.fillRect(x, -R, Ls, Ds);
+    g.fillStyle = vgrad(-R, R, ['#cfc6b4', '#f3ecde', '#e2d8c4', '#9c917c']); g.fillRect(x, -R, Ls * .45, Ds);
+    g.fillStyle = '#b89a5a'; g.fillRect(x + Ls * .45, -R, 2, Ds);
+    if(stain > 0){ const sg = g.createLinearGradient(x + Ls * .55, 0, x + Ls, 0); sg.addColorStop(0, 'rgba(120,80,40,0)'); sg.addColorStop(1, `rgba(120,80,40,${.5 * stain})`); g.fillStyle = sg; g.fillRect(x + Ls * .5, -R, Ls * .5, Ds); }
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x, -R, 2, Ds);
+  }
+  m.draw = () => {
+    const Lh = m.Lh, Dh = m.Dh, R = Dh / 2;
+    const [bx, by] = toW(Lh * .15, -R);
+    drawBg(bx, by, m.led * .5, '220,230,255');
+    const jx = m.buzz > 0 ? rand(-1.5, 1.5) : 0, jy = m.buzz > 0 ? rand(-1.5, 1.5) : 0;
+    g.save(); g.translate(m.cx + jx, m.cy + jy); g.rotate(m.ang);
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(0, R * 2.6, Lh * .55, R * .5, 0, 0, Math.PI * 2); g.fill();
+    if(m.phase !== 'done') stick(stickX(), Dh * .55, Lh * .55, m.stain);
+    // держатель
+    g.fillStyle = vgrad(-R, R, ['#2a2d33', '#767b86', '#4a4e56', '#16181c']); rr(-Lh / 2, -R, Lh, Dh, R); g.fill();
+    g.fillStyle = vgrad(-R, R, ['#33363d', '#8a909b', '#575c65', '#1c1e22']); rr(-Lh / 2, -R, Lh * .2, Dh, R); g.fill();
+    g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(-Lh / 2 + Lh * .2, -R, 1.5, Dh);
+    g.fillStyle = '#0a0b0d'; g.beginPath(); g.ellipse(-Lh / 2 + 2, 0, Dh * .08, Dh * .3, 0, 0, Math.PI * 2); g.fill();
+    // кнопка и диод
+    g.fillStyle = m.P.holding && m.phase === 'press' ? '#9aa0a8' : '#5d626b'; rr(Lh * .1, -R - 2, Lh * .1, 5, 2.5); g.fill();
+    if(m.led > .02){ g.fillStyle = `rgba(230,240,255,${m.led})`; g.beginPath(); g.arc(Lh * .3, -R * .55, 2.2, 0, Math.PI * 2); g.fill(); }
+    // сегменты: затяжки или прогрев
+    const n = HEAT_PUFFS, sw = Lh * .38 / n;
+    for(let i = 0; i < n; i++){
+      let on = 0;
+      if(m.phase === 'heating') on = i < Math.floor(m.heatT / 7 * n) ? .9 : 0;
+      else if(m.phase === 'smoke' || m.phase === 'remove') on = i < m.left ? (m.left <= 2 ? .5 + .5 * Math.sin(E.t * 10) : .9) : 0;
+      g.fillStyle = on ? (m.phase === 'heating' ? `rgba(255,190,90,${on})` : `rgba(230,240,255,${on})`) : 'rgba(255,255,255,.08)';
+      g.fillRect(-Lh * .05 + i * sw, R * .25, sw * .6, 2.5);
+    }
+    if(m.phase === 'press' && m.P.holding){ g.strokeStyle = 'rgba(230,240,255,.8)'; g.lineWidth = 2; g.beginPath(); g.arc(Lh * .15, -R - 1, Dh * .5, -Math.PI, -Math.PI + Math.PI * clamp(m.press / 1.2, 0, 1)); g.stroke(); }
+    g.restore();
+    glowAt(bx, by, Dh * 1.2, m.led * .4, '220,230,255');
+  };
+  m.hint = () => ({
+    insert:'Нажми, чтобы вставить стик',
+    inserting:'',
+    press:'Зажми кнопку, чтобы включить нагрев',
+    heating:'Нагревается, подожди…',
+    smoke:m.P.puffing ? 'Затяжка…' : `Зажми, чтобы затянуться. Осталось ${m.left} ${plural(m.left, 'затяжка', 'затяжки', 'затяжек')}`,
+    remove:'Стик закончился. Нажми, чтобы вытащить',
+    removing:'', done:''
+  })[m.phase];
+  m.stats = () => [['Затяжек', m.puffs], ['Осталось', m.phase === 'smoke' || m.phase === 'remove' ? m.left : '—'], ['Стиков', totals.heat || 0]];
+  return m;
+})();
+
+/* ================= переключение и ввод ================= */
+let M = null;
+function setMode(id){
+  if(!MODES[id]) id = 'cigarette';
+  if(M && M.P) stopP(M);
+  loopStop();
+  M = MODES[id];
+  E.parts.length = 0; E.chunks.length = 0; E.texts.length = 0; E.rings.length = 0; E.exh.length = 0; E.hold = null; E.tricks = 0;
+  $('end').hidden = true;
+  M.warnIdx = M.warnIdx === undefined ? Math.floor(Math.random() * M.warns.length) : M.warnIdx;
+  $('warn').textContent = M.warns[M.warnIdx];
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.id === id ? 'true' : 'false'));
+  const cur = document.querySelector(`.tab[data-id="${id}"]`); if(cur) cur.scrollIntoView({block:'nearest', inline:'nearest'});
+  measure(); M.reset(); lastHud = '';
+}
+function restart(){
+  $('end').hidden = true;
+  M.warnIdx = (M.warnIdx + 1) % M.warns.length;
+  $('warn').textContent = M.warns[M.warnIdx];
+  M.reset(); lastHud = '';
+}
+const tabs = $('tabs');
+for(const id of ORDER){
+  const b = document.createElement('button');
+  b.className = 'tab'; b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.id = id; b.textContent = MODES[id].name;
+  b.addEventListener('click', () => { if(location.hash !== '#' + id) location.hash = id; else setMode(id); });
+  tabs.appendChild(b);
+}
+window.addEventListener('hashchange', () => setMode(location.hash.slice(1)));
+
+function pos(e){ E.px = e.clientX; E.py = e.clientY; }
+let pointerDown = false, route = 'mode';
+// нажатие уходит в трюк (если дым во рту), в пепельницу или в текущий предмет
+function press(x, y){
+  pointerDown = true;
+  if(E.hold){ route = 'hold'; E.hold.down = {x:x ?? 0, y:y ?? 0, t:E.t}; return; }
+  const busy = M.P && (M.P.holding || M.P.puffing);
+  if(!busy && x !== undefined && inTray(x, y)){ route = 'tray'; return; }
+  route = 'mode'; M.down(x, y);
+}
+function unpress(x, y){
+  if(!pointerDown) return; pointerDown = false;
+  if(route === 'hold'){ const h = E.hold; if(h && h.down){ const d = h.down; h.down = null; holdGesture(x - d.x, y - d.y, E.t - d.t); } return; }
+  if(route === 'tray'){ if(inTray(x, y)){ audio(); emptyTray(); } return; }
+  M.up(x, y);
+}
+cv.addEventListener('pointerdown', e => { if(e.button && e.button !== 0) return; try{ cv.setPointerCapture(e.pointerId); }catch(_){} pos(e); press(E.px, E.py); });
+cv.addEventListener('pointermove', e => { pos(e); if(pointerDown && route === 'mode') M.move(E.px, E.py); });
+const up = e => { if(e && e.clientX !== undefined) pos(e); unpress(E.px, E.py); };
+cv.addEventListener('pointerup', up);
+cv.addEventListener('pointercancel', up);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+let spaceDown = false;
+window.addEventListener('keydown', e => {
+  if(e.target.closest && e.target.closest('button')) { if(e.code === 'Space') return; }
+  if(e.code === 'Space'){ e.preventDefault(); if(!e.repeat && !spaceDown){ spaceDown = true; press(undefined, undefined); } }
+  if(e.code === 'KeyF' && M.key) M.key('f');
+});
+window.addEventListener('keyup', e => { if(e.code === 'Space' && spaceDown){ e.preventDefault(); spaceDown = false; unpress(E.hold && E.hold.down ? E.hold.down.x : undefined, E.hold && E.hold.down ? E.hold.down.y : undefined); } });
+window.addEventListener('blur', () => { spaceDown = false; unpress(E.px, E.py); });
+
+$('mute').addEventListener('click', () => {
+  muted = !muted; save('perekur.muted', muted);
+  if(muted) loopStop();
+  $('mute').textContent = muted ? 'Звук: выкл' : 'Звук: вкл';
+});
+$('mute').textContent = muted ? 'Звук: выкл' : 'Звук: вкл';
+$('diaryBtn').addEventListener('click', () => openDiary(false));
+function fireLabel(){ const l = LIGHTERS.find(x => x.id === lighterId); $('fire').textContent = 'Огонь: ' + l.n; }
+$('fire').addEventListener('click', () => {
+  const i = LIGHTERS.findIndex(x => x.id === lighterId);
+  lighterId = LIGHTERS[(i + 1) % LIGHTERS.length].id; save('perekur.lighter', lighterId); fireLabel();
+  if(M.LT && !M.lit){ M.lidOpen = false; M.misfire = false; }
+});
+fireLabel();
+
+/* ================= HUD и цикл ================= */
+let lastHud = '';
+function hud(){
+  const h = E.hold ? 'Дым во рту. Тап: кольцо · свайп вниз: водопад · вверх: призрак · вбок: дракон' : (M.hint() || '');
+  const fireVis = !!(M.c && M.c.light === 'lighter');
+  if($('fire').hidden === fireVis) { $('fire').hidden = !fireVis; measure(); M.layout(); }
+  const st = M.stats();
+  const key = h + '|' + JSON.stringify(st);
+  if(key === lastHud) return; lastHud = key;
+  $('hint').textContent = h;
+  $('stats').innerHTML = st.map(([k, v]) => `<span>${k} <b>${v}</b></span>`).join('');
+}
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  E.t += dt; M.update(dt); updateFx(dt); M.draw(); drawFx(); hud();
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize', resize);
+resize();
+setMode(location.hash.slice(1) || 'cigarette');
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); M.layout(); });
+requestAnimationFrame(frame);
+
+// Офлайн и установка на телефон; при возврате в приложение проверяем новую сборку
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(reloaded || !hadController) return;
+    reloaded = true;
+    if(!M || !(M.lit || (M.P && M.P.holding))) location.reload();
+  });
+}
+})();
+</script>
